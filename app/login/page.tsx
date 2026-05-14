@@ -77,14 +77,14 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-background selection:bg-foreground/10">
       <div className="w-full max-w-md space-y-10 relative z-10">
         <div className="space-y-4 text-center">
-          <h1 className="text-3xl font-serif tracking-tight">Sign in to LowHat</h1>
+          <h1 className="text-3xl font-serif tracking-tight"><span className="font-jersey">LowHat</span></h1>
           <p className="text-muted-foreground">Continue to your execution workspace.</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-foreground">Email address</label>
+            <div>
+              <label htmlFor="email" className="mb-3 block text-sm font-medium text-foreground">Email address</label>
               <input
                 id="email"
                 name="email"
@@ -94,9 +94,9 @@ function LoginForm() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium text-foreground">Password</label>
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <label htmlFor="password" className="block text-sm font-medium text-foreground">Password</label>
               </div>
               <input
                 id="password"

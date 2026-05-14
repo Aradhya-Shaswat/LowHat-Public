@@ -13,7 +13,7 @@ export default function TeamSettingsPage() {
           <h2 className="text-lg font-serif">Unit Identity</h2>
           <div className="space-y-6">
             <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium text-foreground">Unit Designation (Name)</label>
+              <label className="mb-3 block  text-sm font-medium text-foreground">Unit Designation (Name)</label>
               <input
                 type="text"
                 defaultValue="Team Sigma"
@@ -22,7 +22,7 @@ export default function TeamSettingsPage() {
             </div>
             
             <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium text-foreground">Operational Mandate</label>
+              <label className="mb-3 block  text-sm font-medium text-foreground">Operational Mandate</label>
               <textarea
                 rows={4}
                 defaultValue="We are a senior triad (Product Engineer, Data Architect, UI Designer) specializing in high-throughput financial applications and real-time marketplaces."
@@ -42,7 +42,7 @@ export default function TeamSettingsPage() {
               <p className="font-medium text-sm text-foreground">Accepting New Contracts</p>
               <p className="text-sm text-muted-foreground mt-1">Currently listed as 'High' capacity.</p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className="mb-3 block  relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" defaultChecked />
               <div className="w-11 h-6 bg-border/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-foreground after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-foreground"></div>
             </label>

@@ -6,7 +6,6 @@ import type { NextRequest, NextFetchEvent } from "next/server";
 const defaultMiddleware = auth.middleware({ loginUrl: "/login" });
 
 export default async function middleware(req: NextRequest, ev: NextFetchEvent) {
-  // bypassing server actions btw ig bro
   if (req.method === "POST" && req.headers.has("next-action")) {
     return NextResponse.next();
   }
@@ -14,18 +13,21 @@ export default async function middleware(req: NextRequest, ev: NextFetchEvent) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const response = await defaultMiddleware(req);
-  
+
       if (response && response.status === 502) {
-        if (attempt === 2) return response;
+        if (attempt === 2) break;
         await new Promise(r => setTimeout(r, 500));
         continue;
       }
       return response;
     } catch (err: any) {
-      if (attempt === 2) throw err;
+      console.warn(`[middleware] Auth check failed (attempt ${attempt + 1}/3):`, err.message || err);
+      if (attempt === 2) break;
       await new Promise(r => setTimeout(r, 500));
     }
   }
+
+  return NextResponse.next();
 }
 
 export const config = {

@@ -24,7 +24,7 @@ export default async function MyJobsPage() {
   }
 
   return (
-    <div className="flex flex-col py-12 px-8 max-w-5xl min-h-full">
+    <div className="flex flex-col py-12 px-8 md:px-12 w-full min-h-full">
       <header className="flex items-center justify-between border-b border-border pb-8 mb-8">
         <div>
           <h1 className="text-3xl font-heading text-foreground mb-2">My Postings</h1>
@@ -36,7 +36,7 @@ export default async function MyJobsPage() {
       </header>
 
       {clientJobs.length === 0 ? (
-        <div className="text-center py-24 border border-dashed border-border rounded-xl bg-card/30">
+        <div className="text-center py-24">
           <h3 className="font-serif text-lg text-foreground mb-2">No Active Postings</h3>
           <p className="text-sm text-muted-foreground mb-6">You haven't posted any jobs to the execution board yet.</p>
           <Link href="/my-jobs/new">
@@ -48,25 +48,24 @@ export default async function MyJobsPage() {
           {clientJobs.map((job) => {
             const jobBids = bidsData.filter((b) => b.jobId === job.id);
             return (
-              <div key={job.id} className="p-6 border border-border rounded-xl bg-card hover:border-foreground/20 transition-colors">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className={`text-xs font-semibold uppercase tracking-wider font-sans ${job.status === "open" ? "text-primary" : "text-muted-foreground"}`}>
-                        {job.status.replace("_", " ")}
-                      </span>
-                      <span className="text-xs text-muted-foreground font-sans tracking-tight">
-                        Budget: ${(job.budgetMin! / 100).toLocaleString()} - ${(job.budgetMax! / 100).toLocaleString()}
-                      </span>
-                    </div>
-                    <h3 className="text-2xl font-serif text-foreground">{job.title}</h3>
+              <Link key={job.id} href={`/my-jobs/${job.id}`} className="block group py-6 border-b border-border/60 hover:border-foreground/40 transition-colors">
+                <div className="space-y-1 mb-3">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className={`text-xs font-semibold uppercase tracking-wider font-sans ${job.status === "open" ? "text-primary" : "text-muted-foreground"}`}>
+                      {job.status.replace("_", " ")}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-sans tracking-tight">
+                      Budget: ${(job.budgetMin! / 100).toLocaleString()} - ${(job.budgetMax! / 100).toLocaleString()}
+                    </span>
                   </div>
-                  <Link href={`/my-jobs/${job.id}`}>
-                    <Button variant="outline" className="text-xs px-4 h-8 bg-transparent">View & Compare Bids ({jobBids.length})</Button>
-                  </Link>
+                  <h3 className="text-2xl font-serif text-foreground group-hover:text-foreground/80 transition-colors">{job.title}</h3>
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-2">{job.description}</p>
-              </div>
+                <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed font-sans max-w-3xl">{job.description}</p>
+                <div className="flex items-center justify-between mt-6">
+                  <span className="text-sm font-medium text-foreground font-sans">You</span>
+                  <span className="text-sm font-medium text-foreground font-sans">{jobBids.length} bids</span>
+                </div>
+              </Link>
             );
           })}
         </div>

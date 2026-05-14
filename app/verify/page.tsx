@@ -130,9 +130,12 @@ function VerifyContent() {
     try {
       await authClient.emailOtp.sendVerificationOtp({
         email,
-        type: "sign-in"
+        type: "email-verification"
       });
       setCooldown(60);
+      setCode(Array(6).fill(""));
+      setActiveIndex(0);
+      inputRefs.current[0]?.focus();
     } catch (err: any) {
       setError(err.message || "Failed to resend code.");
     }
@@ -160,7 +163,7 @@ function VerifyContent() {
         <div className="space-y-8 p-8 rounded-2xl bg-card border border-border/50 shadow-sm backdrop-blur-xl relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-tr from-background/0 via-foreground/[0.02] to-background/0 pointer-events-none" />
 
-          <div className="flex justify-between items-center gap-2 relative z-10">
+          <div className="flex justify-center items-center gap-3 relative z-10">
             {code.map((digit, idx) => (
               <input
                 key={idx}

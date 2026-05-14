@@ -67,33 +67,35 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-background selection:bg-foreground/10">
       <div className="w-full max-w-md space-y-10 relative z-10">
         <div className="space-y-4 text-center">
-          <h1 className="text-3xl font-serif tracking-tight">Apply for LowHat</h1>
+          <h1 className="text-3xl font-serif tracking-tight"><span className="font-jersey">LowHat</span></h1>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-6">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">First name</label>
+              <div>
+                <label className="mb-3 block text-sm font-medium text-foreground">First name</label>
                 <input
                   name="firstName"
                   type="text"
+                  placeholder="Jane"
                   className="w-full px-3 py-2 bg-transparent border border-border rounded-md text-sm outline-none focus:border-foreground/30 transition-colors"
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Last name</label>
+              <div>
+                <label className="mb-3 block text-sm font-medium text-foreground">Last name</label>
                 <input
                   name="lastName"
                   type="text"
+                  placeholder="Doe"
                   className="w-full px-3 py-2 bg-transparent border border-border rounded-md text-sm outline-none focus:border-foreground/30 transition-colors"
                   required
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Email address</label>
+            <div>
+              <label className="mb-3 block text-sm font-medium text-foreground">Email address</label>
               <input
                 name="email"
                 type="email"
@@ -102,8 +104,8 @@ export default function SignupPage() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Password</label>
+            <div>
+              <label className="mb-3 block text-sm font-medium text-foreground">Password</label>
               <input
                 name="password"
                 type="password"
@@ -114,19 +116,15 @@ export default function SignupPage() {
             </div>
 
             <div className="pt-2">
-              <label className="text-sm font-medium text-foreground mb-3 block">I want to join as:</label>
-              <div className="grid grid-cols-3 gap-2">
-                <label className="flex items-center gap-2 p-3 border border-border rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
+              <label className="mb-3 block text-sm font-medium text-foreground">I want to join as:</label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="mb-3 block flex items-center gap-2 p-3 border border-border rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
                   <input type="radio" name="intent" value="client" className="accent-foreground" required />
                   <span className="text-sm text-center w-full">Client</span>
                 </label>
-                <label className="flex items-center gap-2 p-3 border border-border rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
+                <label className="mb-3 block  flex items-center gap-2 p-3 border border-border rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
                   <input type="radio" name="intent" value="freelancer" className="accent-foreground" required />
                   <span className="text-sm text-center w-full">Freelancer</span>
-                </label>
-                <label className="flex items-center gap-2 p-3 border border-border rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
-                  <input type="radio" name="intent" value="admin" className="accent-foreground" required />
-                  <span className="text-sm text-center w-full">Admin</span>
                 </label>
               </div>
             </div>

@@ -28,62 +28,64 @@ export default async function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col py-12 px-8 max-w-3xl min-h-full">
+    <div className="flex flex-col py-12 px-8 md:px-12 w-full min-h-full">
       <header className="mb-10 border-b border-border pb-8">
         <h1 className="text-3xl font-heading text-foreground mb-2">Profile & Settings</h1>
         <p className="text-muted-foreground text-sm">Update your marketplace identity.</p>
       </header>
 
       <ProfileForm>
-        <div className="space-y-6 bg-card border border-border/80 shadow-sm p-6 rounded-xl">
-          <h2 className="text-xl font-serif text-foreground mb-4">Personal Information</h2>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">First Name</label>
-              <input name="firstName" type="text" defaultValue={firstName} className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
+        <div className="max-w-2xl space-y-12">
+          <div className="space-y-6 pb-12 border-b border-border">
+            <h2 className="text-xl font-serif text-foreground mb-4">Personal Information</h2>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="mb-3 block  text-sm font-medium text-foreground">First Name</label>
+                <input name="firstName" type="text" defaultValue={firstName} className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
+              </div>
+              <div className="space-y-2">
+                <label className="mb-3 block  text-sm font-medium text-foreground">Last Name</label>
+                <input name="lastName" type="text" defaultValue={lastName} className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
+              </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Last Name</label>
-              <input name="lastName" type="text" defaultValue={lastName} className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
+              <label className="mb-3 block  text-sm font-medium text-foreground">Email Address</label>
+              <input type="email" defaultValue={user?.email || ""} disabled className="w-full px-3 py-2 bg-muted/30 border border-border rounded-md text-sm text-muted-foreground cursor-not-allowed" />
             </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Email Address</label>
-            <input type="email" defaultValue={user?.email || ""} disabled className="w-full px-3 py-2 bg-muted/30 border border-border rounded-md text-sm text-muted-foreground cursor-not-allowed" />
-          </div>
+
+          {session.role === "freelancer" && freelancerProfile && (
+            <div className="space-y-6 pb-12 border-b border-border">
+              <h2 className="text-xl font-serif text-foreground mb-4">Execution Profile</h2>
+              <div className="space-y-2">
+                <label className="mb-3 block  text-sm font-medium text-foreground">Professional Title</label>
+                <input name="title" type="text" defaultValue={freelancerProfile.title || ""} placeholder="e.g. Senior Go Engineer" className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
+              </div>
+              <div className="space-y-2">
+                <label className="mb-3 block  text-sm font-medium text-foreground">Hourly Rate (USD)</label>
+                <input name="hourlyRate" type="number" defaultValue={(freelancerProfile.hourlyRate || 0)/100} placeholder="e.g. 100" className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
+              </div>
+              <div className="space-y-2">
+                <label className="mb-3 block  text-sm font-medium text-foreground">Bio</label>
+                <textarea name="bio" rows={4} defaultValue={freelancerProfile.bio || ""} placeholder="Detail your specific competencies..." className="w-full px-3 py-2.5 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors resize-y leading-relaxed"></textarea>
+              </div>
+            </div>
+          )}
+
+          {session.role === "client" && clientProfile && (
+            <div className="space-y-6 pb-12 border-b border-border">
+              <h2 className="text-xl font-serif text-foreground mb-4">Company Profile</h2>
+              <div className="space-y-2">
+                <label className="mb-3 block  text-sm font-medium text-foreground">Company Name</label>
+                <input name="companyName" type="text" defaultValue={clientProfile.companyName || ""} placeholder="Acme Corp" className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
+              </div>
+              <div className="space-y-2">
+                <label className="mb-3 block  text-sm font-medium text-foreground">Industry</label>
+                <input name="industry" type="text" defaultValue={clientProfile.industry || ""} placeholder="FinTech" className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
+              </div>
+            </div>
+          )}
         </div>
-
-        {session.role === "freelancer" && freelancerProfile && (
-          <div className="space-y-6 bg-card border border-border/80 shadow-sm p-6 rounded-xl">
-            <h2 className="text-xl font-serif text-foreground mb-4">Execution Profile</h2>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Professional Title</label>
-              <input name="title" type="text" defaultValue={freelancerProfile.title || ""} placeholder="e.g. Senior Go Engineer" className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Hourly Rate (USD)</label>
-              <input name="hourlyRate" type="number" defaultValue={(freelancerProfile.hourlyRate || 0)/100} placeholder="e.g. 100" className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Bio</label>
-              <textarea name="bio" rows={4} defaultValue={freelancerProfile.bio || ""} placeholder="Detail your specific competencies..." className="w-full px-3 py-2.5 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors resize-y leading-relaxed"></textarea>
-            </div>
-          </div>
-        )}
-
-        {session.role === "client" && clientProfile && (
-          <div className="space-y-6 bg-card border border-border/80 shadow-sm p-6 rounded-xl">
-            <h2 className="text-xl font-serif text-foreground mb-4">Company Profile</h2>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Company Name</label>
-              <input name="companyName" type="text" defaultValue={clientProfile.companyName || ""} placeholder="Acme Corp" className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Industry</label>
-              <input name="industry" type="text" defaultValue={clientProfile.industry || ""} placeholder="FinTech" className="w-full px-3 py-2 bg-transparent border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] rounded-md text-sm outline-none focus:border-foreground/30 transition-colors" />
-            </div>
-          </div>
-        )}
       </ProfileForm>
     </div>
   );

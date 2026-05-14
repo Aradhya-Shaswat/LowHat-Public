@@ -1,10 +1,15 @@
 import { db } from "@/lib/db";
-import { jobs } from "@/lib/db/schema";
+import { jobs, users, clientProfiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { verifySession } from "@/lib/session";
 import ClientJobView from "./client-job-view";
 
-export default async function JobPage({ params }: { params: { jobId: string } }) {
-  const [job] = await db.select().from(jobs).where(eq(jobs.id, params.jobId)).limit(1);
+export default async function JobPage({ params }: { params: Promise<{ jobId: string }> }) {
+  const { jobId } = await params;
+  const session = await verifySession();
+  const role = session?.role || "client";
+
+  const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
 
   if (!job) {
     return (
@@ -14,5 +19,21 @@ export default async function JobPage({ params }: { params: { jobId: string } })
     );
   }
 
-  return <ClientJobView job={job} jobId={params.jobId} />;
+  const [client] = await db.select({
+    user: users,
+    profile: clientProfiles,
+  })
+  .from(users)
+  .leftJoin(clientProfiles, eq(clientProfiles.userId, users.id))
+  .where(eq(users.id, job.clientId))
+  .limit(1);
+
+  return (
+    <ClientJobView
+      job={job}
+      jobId={jobId}
+      role={role}
+      clientName={client?.profile?.companyName || client?.user?.name || "Unknown"}
+    />
+  );
 }

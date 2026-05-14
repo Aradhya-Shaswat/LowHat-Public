@@ -28,23 +28,23 @@ export default async function NotificationsPage() {
   .orderBy(desc(notifications.createdAt));
 
   return (
-    <div className="flex flex-col py-12 px-8 max-w-4xl min-h-full">
+    <div className="flex flex-col py-12 px-8 md:px-12 w-full min-h-full">
       <header className="mb-10 border-b border-border pb-8">
         <h1 className="text-3xl font-heading text-foreground mb-2">Inbox & Notifications</h1>
         <p className="text-muted-foreground text-sm">Stay updated on your execution contracts and team messages.</p>
       </header>
 
       {userNotifications.length === 0 ? (
-        <div className="text-center py-24 border border-dashed border-border rounded-xl bg-card/30">
-          <Bell className="w-8 h-8 text-muted-foreground/50 mb-4" />
+        <div className="text-center py-24">
+          <Bell className="w-8 h-8 text-muted-foreground/50 mb-4 mx-auto" />
           <h3 className="font-serif text-lg text-foreground mb-2">You're all caught up</h3>
           <p className="text-sm text-muted-foreground mb-6">No new notifications in your inbox at the moment.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-0">
            {userNotifications.map((notif) => (
-             <Link key={notif.id} href={notif.actionUrl || "#"} className="block group">
-               <div className={`p-5 rounded-xl border flex gap-4 transition-colors ${notif.isRead ? 'border-transparent bg-background hover:bg-card hover:border-border' : 'border-border bg-card'}`}>
+             <Link key={notif.id} href={notif.actionUrl || "#"} className="block group border-b border-border py-6 hover:bg-secondary/20 transition-colors -mx-8 md:-mx-12 px-8 md:px-12">
+               <div className="flex gap-4">
                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${notif.isRead ? 'bg-secondary/40' : 'bg-secondary/80 shadow-sm border border-border/50'}`}>
                     {renderIcon(notif.type)}
                  </div>

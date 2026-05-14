@@ -14,6 +14,7 @@
     --font-heading: var(--font-heading);
     --font-sans: var(--font-sans);
     --font-serif: var(--font-serif);
+    --font-jersey: var(--font-jersey);
 
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -116,4 +117,73 @@
   p {
     @apply leading-relaxed;
   }
+}
+
+/* ── Global Top Loader ── */
+
+.top-loader-track {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  z-index: 99999;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.top-loader-track[data-phase="loading"] {
+  opacity: 1;
+}
+
+.top-loader-track[data-phase="completing"] {
+  opacity: 0;
+  transition: opacity 400ms ease-out 100ms;
+}
+
+.top-loader-bar {
+  height: 100%;
+  border-radius: 0 1px 1px 0;
+  background: var(--foreground);
+  position: relative;
+}
+
+/* Subtle glow on the leading edge */
+.top-loader-bar::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -1px;
+  bottom: -1px;
+  width: 80px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--foreground) 50%,
+    transparent
+  );
+  opacity: 0.4;
+  border-radius: 1px;
+}
+
+/* Loading: animate from 0% to ~85% with a decelerating curve */
+.top-loader-track[data-phase="loading"] .top-loader-bar {
+  animation: top-loader-indeterminate 12s cubic-bezier(0.16, 0.7, 0.3, 0.98) forwards;
+}
+
+/* Completing: snap to 100% width, then the track fades out */
+.top-loader-track[data-phase="completing"] .top-loader-bar {
+  width: 100% !important;
+  animation: none;
+  transition: width 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes top-loader-indeterminate {
+  0%   { width: 0%; }
+  5%   { width: 15%; }    /* fast initial burst */
+  20%  { width: 40%; }
+  40%  { width: 55%; }
+  60%  { width: 68%; }
+  80%  { width: 78%; }
+  100% { width: 85%; }    /* never reaches 100% — that's for completion */
 }

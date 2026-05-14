@@ -42,7 +42,7 @@ export function ProfileForm({ children }: { children: React.ReactNode }) {
 
       {children}
 
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-start pt-4">
         <button
           type="submit"
           disabled={isPending}
