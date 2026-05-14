@@ -1,0 +1,281 @@
+import { pgTable, text, timestamp, pgEnum, varchar, integer, boolean } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+
+// Better Auth manages the user table in the public schema.
+// IDs are text (not UUID) — this matches Better Auth's defaults.
+export const users = pgTable('user', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  emailVerified: boolean('emailVerified').notNull().default(false),
+  image: text('image'),
+  role: text('role').default('client'), // 'client' | 'freelancer' | 'admin'
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
+});
+
+// Enums
+export const teamRoleEnum = pgEnum('team_role', ['owner', 'member']);
+export const jobStatusEnum = pgEnum('job_status', ['open', 'bidding', 'in_progress', 'completed', 'cancelled', 'disputed']);
+export const bidStatusEnum = pgEnum('bid_status', ['pending', 'accepted', 'rejected', 'withdrawn']);
+export const projectStatusEnum = pgEnum('project_status', ['active', 'paused', 'completed', 'cancelled']);
+export const notificationTypeEnum = pgEnum('notification_type', ['message', 'bid', 'job', 'project', 'system']);
+export const verificationTargetTypeEnum = pgEnum('verification_target_type', ['user', 'team']);
+export const verificationStatusEnum = pgEnum('verification_status', ['pending', 'approved', 'rejected']);
+export const attachmentRelatedTypeEnum = pgEnum('attachment_related_type', ['message', 'job', 'project', 'delivery']);
+export const disputeStatusEnum = pgEnum('dispute_status', ['open', 'resolved', 'escalated']);
+
+// Profiles
+export const clientProfiles = pgTable('client_profiles', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull().unique(),
+  companyName: varchar('company_name', { length: 255 }),
+  industry: varchar('industry', { length: 100 }),
+  totalSpent: integer('total_spent').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const freelancerProfiles = pgTable('freelancer_profiles', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull().unique(),
+  bio: text('bio'),
+  title: varchar('title', { length: 255 }),
+  hourlyRate: integer('hourly_rate'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Teams
+export const teams = pgTable('teams', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const teamMembers = pgTable('team_members', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  teamId: text('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  teamRole: teamRoleEnum('team_role').notNull().default('member'),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+});
+
+// Jobs & Bidding
+export const jobs = pgTable('jobs', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  clientId: text('client_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description').notNull(),
+  budgetMin: integer('budget_min'),
+  budgetMax: integer('budget_max'),
+  status: jobStatusEnum('status').default('open').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const bids = pgTable('bids', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  jobId: text('job_id').references(() => jobs.id, { onDelete: 'cascade' }).notNull(),
+  teamId: text('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  amount: integer('amount').notNull(),
+  proposal: text('proposal').notNull(),
+  status: bidStatusEnum('status').default('pending').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Execution
+export const projects = pgTable('projects', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  jobId: text('job_id').references(() => jobs.id).notNull().unique(),
+  winningBidId: text('winning_bid_id').references(() => bids.id).notNull(),
+  clientId: text('client_id').references(() => users.id).notNull(),
+  teamId: text('team_id').references(() => teams.id).notNull(),
+  status: projectStatusEnum('status').default('active').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const milestones = pgTable('milestones', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  amount: integer('amount').notNull(),
+  isCompleted: boolean('is_completed').default(false).notNull(),
+  dueDate: timestamp('due_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Messaging
+export const messageThreads = pgTable('message_threads', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  jobId: text('job_id').references(() => jobs.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const messageThreadParticipants = pgTable('message_thread_participants', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  threadId: text('thread_id').references(() => messageThreads.id, { onDelete: 'cascade' }).notNull(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+});
+
+export const messages = pgTable('messages', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  threadId: text('thread_id').references(() => messageThreads.id, { onDelete: 'cascade' }).notNull(),
+  senderId: text('sender_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  content: text('content').notNull(),
+  isSystem: boolean('is_system').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const messageReads = pgTable('message_reads', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  messageId: text('message_id').references(() => messages.id, { onDelete: 'cascade' }).notNull(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  readAt: timestamp('read_at').defaultNow().notNull(),
+});
+
+// Reviews
+export const reviews = pgTable('reviews', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  reviewerId: text('reviewer_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  revieweeId: text('reviewee_id').references(() => users.id, { onDelete: 'cascade' }),
+  revieweeTeamId: text('reviewee_team_id').references(() => teams.id, { onDelete: 'cascade' }),
+  rating: integer('rating').notNull(),
+  comment: text('comment'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  type: notificationTypeEnum('type').notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  content: text('content'),
+  actionUrl: varchar('action_url', { length: 255 }),
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Verifications
+export const verifications = pgTable('verifications', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  targetType: verificationTargetTypeEnum('target_type').notNull(),
+  targetUserId: text('target_user_id').references(() => users.id, { onDelete: 'cascade' }),
+  targetTeamId: text('target_team_id').references(() => teams.id, { onDelete: 'cascade' }),
+  status: verificationStatusEnum('status').default('pending').notNull(),
+  documentUrl: varchar('document_url', { length: 1024 }),
+  verifiedAt: timestamp('verified_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Attachments
+export const attachments = pgTable('attachments', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  uploaderId: text('uploader_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  relatedType: attachmentRelatedTypeEnum('related_type').notNull(),
+  messageId: text('message_id').references(() => messages.id, { onDelete: 'cascade' }),
+  jobId: text('job_id').references(() => jobs.id, { onDelete: 'cascade' }),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  url: varchar('url', { length: 1024 }).notNull(),
+  filename: varchar('filename', { length: 255 }).notNull(),
+  fileSize: integer('file_size').notNull(),
+  mimeType: varchar('mime_type', { length: 100 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Disputes
+export const disputes = pgTable('disputes', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  initiatorId: text('initiator_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  reason: text('reason').notNull(),
+  status: disputeStatusEnum('status').default('open').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Admin Actions
+export const adminActions = pgTable('admin_actions', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  adminId: text('admin_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  actionType: varchar('action_type', { length: 100 }).notNull(),
+  targetType: varchar('target_type', { length: 100 }).notNull(),
+  targetId: text('target_id').notNull(),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Relations
+export const usersRelations = relations(users, ({ one, many }) => ({
+  clientProfile: one(clientProfiles, { fields: [users.id], references: [clientProfiles.userId] }),
+  freelancerProfile: one(freelancerProfiles, { fields: [users.id], references: [freelancerProfiles.userId] }),
+  teamMemberships: many(teamMembers),
+  jobs: many(jobs),
+  messages: many(messages),
+  notifications: many(notifications),
+  reviewsWritten: many(reviews, { relationName: 'reviewer' }),
+  reviewsReceived: many(reviews, { relationName: 'reviewee' }),
+  messageThreads: many(messageThreadParticipants),
+}));
+
+export const teamsRelations = relations(teams, ({ many }) => ({
+  members: many(teamMembers),
+  bids: many(bids),
+  projects: many(projects),
+  reviewsReceived: many(reviews, { relationName: 'reviewee_team' }),
+}));
+
+export const jobsRelations = relations(jobs, ({ one, many }) => ({
+  client: one(users, { fields: [jobs.clientId], references: [users.id] }),
+  bids: many(bids),
+  project: one(projects),
+}));
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  job: one(jobs, { fields: [projects.jobId], references: [jobs.id] }),
+  client: one(users, { fields: [projects.clientId], references: [users.id] }),
+  team: one(teams, { fields: [projects.teamId], references: [teams.id] }),
+  winningBid: one(bids, { fields: [projects.winningBidId], references: [bids.id] }),
+  milestones: many(milestones),
+  messages: many(messageThreads),
+  disputes: many(disputes),
+  reviews: many(reviews),
+}));
+
+export const messageThreadsRelations = relations(messageThreads, ({ one, many }) => ({
+  project: one(projects, { fields: [messageThreads.projectId], references: [projects.id] }),
+  job: one(jobs, { fields: [messageThreads.jobId], references: [jobs.id] }),
+  participants: many(messageThreadParticipants),
+  messages: many(messages),
+}));
+
+export const messagesRelations = relations(messages, ({ one, many }) => ({
+  thread: one(messageThreads, { fields: [messages.threadId], references: [messageThreads.id] }),
+  sender: one(users, { fields: [messages.senderId], references: [users.id] }),
+  reads: many(messageReads),
+}));
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  project: one(projects, { fields: [reviews.projectId], references: [projects.id] }),
+  reviewer: one(users, { fields: [reviews.reviewerId], references: [users.id], relationName: 'reviewer' }),
+  reviewee: one(users, { fields: [reviews.revieweeId], references: [users.id], relationName: 'reviewee' }),
+  revieweeTeam: one(teams, { fields: [reviews.revieweeTeamId], references: [teams.id], relationName: 'reviewee_team' }),
+}));
+
+export const disputesRelations = relations(disputes, ({ one }) => ({
+  project: one(projects, { fields: [disputes.projectId], references: [projects.id] }),
+  initiator: one(users, { fields: [disputes.initiatorId], references: [users.id] }),
+}));
