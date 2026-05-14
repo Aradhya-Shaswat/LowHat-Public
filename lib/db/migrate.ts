@@ -3,7 +3,6 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { migrate } from 'drizzle-orm/neon-http/migrator';
 import { config } from 'dotenv';
 
-// Load environment variables from .env.local or .env
 config({ path: ['.env.local', '.env'] });
 
 if (!process.env.DATABASE_URL) {

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 
 export default function TeamSettingsPage() {
   return (
-    <div className="py-12 px-8 max-w-6xl mx-auto min-h-full">
+    <div className="py-12 px-8 max-w-6xl min-h-full">
       <header className="mb-12 border-b border-border pb-8">
         <h1 className="text-3xl font-heading mb-2">Team Parameters</h1>
         <p className="text-muted-foreground text-sm">Configure your execution unit's public profile and operational status.</p>

@@ -5,6 +5,7 @@ import { eq, desc, asc } from "drizzle-orm";
 import { verifySession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Send } from "lucide-react";
+import { sendMessageAction } from "@/app/actions/messages";
 
 export default async function ProjectWorkspacePage({ params }: { params: { projectId: string } }) {
   const session = await verifySession();
@@ -12,7 +13,6 @@ export default async function ProjectWorkspacePage({ params }: { params: { proje
     redirect("/login");
   }
 
-  // 1. Fetch project details
   const [project] = await db.select({
     project: projects,
     job: jobs,
@@ -24,10 +24,6 @@ export default async function ProjectWorkspacePage({ params }: { params: { proje
 
   if (!project) redirect("/projects");
 
-  // Authentication access control simplified internally
-  // In a real production app, checking if user is the Client or in the Team
-
-  // 2. Fetch Thread
   const [thread] = await db.select().from(messageThreads).where(eq(messageThreads.projectId, project.project.id)).limit(1);
   
   let threadMessages: { message: typeof messages.$inferSelect, sender: typeof users.$inferSelect }[] = [];
@@ -44,8 +40,7 @@ export default async function ProjectWorkspacePage({ params }: { params: { proje
   }
 
   return (
-    <div className="flex flex-col h-full bg-background relative max-w-7xl mx-auto w-full">
-      {/* Header */}
+    <div className="flex flex-col h-full bg-background relative max-w-7xl w-full">
       <header className="h-20 border-b border-border flex items-center px-8 bg-card flex-shrink-0 sticky top-0 z-10">
         <div className="flex-1">
           <Link href="/projects" className="text-muted-foreground hover:text-foreground inline-flex items-center text-xs font-medium transition-colors mb-1">
@@ -61,13 +56,10 @@ export default async function ProjectWorkspacePage({ params }: { params: { proje
         </div>
       </header>
 
-      {/* Main Workspace Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Milestones/Tasks */}
         <aside className="w-80 border-r border-border bg-background p-6 overflow-y-auto hidden md:block">
           <h2 className="font-serif text-lg text-foreground mb-6">Execution Deliverables</h2>
           <div className="space-y-4">
-             {/* Mock Milestones to demonstrate intent */}
              <div className="p-4 border border-border border-l-4 border-l-primary rounded-r-md bg-card/50">
                <h3 className="text-sm font-medium text-foreground">Phase 1: Architecture Review</h3>
                <p className="text-xs text-muted-foreground mt-1">Due in 3 days</p>
@@ -81,7 +73,6 @@ export default async function ProjectWorkspacePage({ params }: { params: { proje
           </div>
         </aside>
 
-        {/* Right: Messaging Context (Mock form action for UI completion) */}
         <div className="flex-1 flex flex-col bg-card/10 relative">
           <div className="flex-1 overflow-y-auto p-8 space-y-6">
             {!thread || threadMessages.length === 0 ? (
@@ -107,13 +98,16 @@ export default async function ProjectWorkspacePage({ params }: { params: { proje
           </div>
           
           <div className="p-6 bg-background border-t border-border">
-            <form className="relative flex items-center">
+            <form action={sendMessageAction} className="relative flex items-center">
+              <input type="hidden" name="threadId" value={thread?.id} />
               <input 
+                 name="content"
                  type="text" 
                  placeholder="Type a message to the team..." 
                  className="w-full px-5 py-3 pr-14 bg-card border border-border rounded-full text-sm outline-none focus:border-foreground/30 transition-colors shadow-sm"
+                 required
               />
-              <button disabled className="absolute right-2 top-1.5 bottom-1.5 px-3 bg-foreground text-background hover:bg-foreground/90 rounded-full flex items-center justify-center transition-colors">
+              <button type="submit" className="absolute right-2 top-1.5 bottom-1.5 px-3 bg-foreground text-background hover:bg-foreground/90 rounded-full flex items-center justify-center transition-colors">
                 <Send className="w-4 h-4" />
               </button>
             </form>

@@ -1,10 +1,11 @@
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
-import { verifications, users, teams } from "@/lib/db/schema";
+import { verifications } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { moderateVerificationAction } from "@/app/actions/admin";
 
 export default async function AdminModerationPage() {
   const session = await verifySession();
@@ -12,16 +13,13 @@ export default async function AdminModerationPage() {
     redirect("/");
   }
 
-  // Fetch pending verifications
   const pendingVerifications = await db.select()
     .from(verifications)
     .where(eq(verifications.status, "pending"))
     .orderBy(desc(verifications.createdAt));
-
-  // For this MVP, let's just render the list loosely, as we haven't mocked a join across mixed types in SQL directly
   
   return (
-    <div className="flex flex-col py-12 px-8 max-w-5xl mx-auto min-h-full">
+    <div className="flex flex-col py-12 px-8 max-w-5xl min-h-full">
       <header className="mb-10 border-b border-border pb-8">
         <h1 className="text-3xl font-heading text-foreground mb-2">Moderation Workbench</h1>
         <p className="text-muted-foreground text-sm">Review verifications, handle disputes, and monitor platform health.</p>
@@ -46,14 +44,15 @@ export default async function AdminModerationPage() {
                     </div>
                     <p className="text-sm font-medium text-foreground">Awaiting identity and capability review.</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <form action={moderateVerificationAction} className="flex items-center gap-2">
+                    <input type="hidden" name="verificationId" value={v.id} />
+                    <Button type="submit" name="status" value="rejected" variant="outline" size="sm" className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10">
                       <X className="w-3.5 h-3.5" /> Reject
                     </Button>
-                    <Button size="sm" className="h-8 gap-1.5 bg-foreground text-background hover:bg-foreground/90">
+                    <Button type="submit" name="status" value="approved" size="sm" className="h-8 gap-1.5 bg-foreground text-background hover:bg-foreground/90">
                       <Check className="w-3.5 h-3.5" /> Approve
                     </Button>
-                  </div>
+                  </form>
                </div>
             ))}
           </div>

@@ -22,14 +22,13 @@ export default async function NotificationsPage() {
     redirect("/login");
   }
 
-  // Fetch notifications for the user
   const userNotifications = await db.select()
   .from(notifications)
   .where(eq(notifications.userId, session.userId))
   .orderBy(desc(notifications.createdAt));
 
   return (
-    <div className="flex flex-col py-12 px-8 max-w-4xl mx-auto min-h-full">
+    <div className="flex flex-col py-12 px-8 max-w-4xl min-h-full">
       <header className="mb-10 border-b border-border pb-8">
         <h1 className="text-3xl font-heading text-foreground mb-2">Inbox & Notifications</h1>
         <p className="text-muted-foreground text-sm">Stay updated on your execution contracts and team messages.</p>
@@ -37,7 +36,7 @@ export default async function NotificationsPage() {
 
       {userNotifications.length === 0 ? (
         <div className="text-center py-24 border border-dashed border-border rounded-xl bg-card/30">
-          <Bell className="w-8 h-8 mx-auto text-muted-foreground/50 mb-4" />
+          <Bell className="w-8 h-8 text-muted-foreground/50 mb-4" />
           <h3 className="font-serif text-lg text-foreground mb-2">You're all caught up</h3>
           <p className="text-sm text-muted-foreground mb-6">No new notifications in your inbox at the moment.</p>
         </div>

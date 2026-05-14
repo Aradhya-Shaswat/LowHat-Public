@@ -12,13 +12,11 @@ export default async function MyJobsPage() {
     redirect("/");
   }
 
-  // Fetch client's posts
   const clientJobs = await db.select()
     .from(jobs)
     .where(eq(jobs.clientId, session.userId))
     .orderBy(desc(jobs.createdAt));
 
-  // Get bid counts per job roughly (in actual prod, use a grouped query/subselect)
   const jobIds = clientJobs.map((j) => j.id);
   let bidsData: { jobId: string; id: string }[] = [];
   if (jobIds.length > 0) {
@@ -26,7 +24,7 @@ export default async function MyJobsPage() {
   }
 
   return (
-    <div className="flex flex-col py-12 px-8 max-w-5xl mx-auto min-h-full">
+    <div className="flex flex-col py-12 px-8 max-w-5xl min-h-full">
       <header className="flex items-center justify-between border-b border-border pb-8 mb-8">
         <div>
           <h1 className="text-3xl font-heading text-foreground mb-2">My Postings</h1>

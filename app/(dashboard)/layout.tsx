@@ -21,7 +21,6 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar Navigation */}
       <aside className="w-64 flex-shrink-0 border-r border-border bg-card flex flex-col justify-between z-10 relative">
         <div>
           <div className="h-16 flex items-center px-6 border-b border-border">
@@ -65,7 +64,6 @@ export default async function DashboardLayout({
         </div>
       </aside>
 
-      {/* Main Viewport */}
       <main className="flex-1 overflow-y-auto w-full bg-background relative isolate">
         {children}
       </main>

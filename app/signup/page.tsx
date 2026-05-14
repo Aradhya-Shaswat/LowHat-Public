@@ -21,7 +21,10 @@ function normalizeError(raw: string): string {
   return "Unable to create your account. Please try again.";
 }
 
+import { useRouter } from "next/navigation";
+
 export default function SignupPage() {
+  const router = useRouter();
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
 
@@ -36,38 +39,35 @@ export default function SignupPage() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const intent = formData.get("intent") as "client" | "freelancer" | "admin";
+    const fullName = `${firstName} ${lastName}`;
 
-    const { data, error: signUpError } = await authClient.signUp.email({
-      email,
-      password,
-      name: `${firstName} ${lastName}`,
-    });
+    try {
+      const { data, error: signUpError } = await authClient.signUp.email({
+        email,
+        password,
+        name: fullName,
+      });
 
-    if (signUpError) {
-      setError(normalizeError(signUpError.message || ""));
-      setIsPending(false);
-    } else if (data?.user?.id) {
-      // Initialize their role-specific profile
-      const res = await initProfileAction(data.user.id, intent);
-      if (res?.error) {
-        setError("Your account was created, but profile setup encountered an issue. Please sign in to continue.");
+      if (signUpError) {
+        console.error("SignUp Error from auth service:", signUpError);
+        setError(normalizeError(signUpError.message || "") + " (Detail: " + signUpError.message + ")");
         setIsPending(false);
+      } else if (data?.user?.id) {
+        router.push(`/verify?email=${encodeURIComponent(email)}&intent=${intent}&name=${encodeURIComponent(fullName)}&id=${data.user.id}`);
       } else {
-        // Redirect to email verification
-        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+        router.push("/");
       }
-    } else {
-      // Account created but no user ID returned — still redirect to verify
-      window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+    } catch (err: any) {
+      setError(normalizeError(err.message || ""));
+      setIsPending(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md space-y-12">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-background selection:bg-foreground/10">
+      <div className="w-full max-w-md space-y-10 relative z-10">
         <div className="space-y-4 text-center">
           <h1 className="text-3xl font-serif tracking-tight">Apply for LowHat</h1>
-          <p className="text-muted-foreground">Join the execution network as a client or independent unit.</p>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-6">
@@ -111,7 +111,6 @@ export default function SignupPage() {
                 className="w-full px-3 py-2 bg-transparent border border-border rounded-md text-sm outline-none focus:border-foreground/30 transition-colors"
                 required
               />
-              <p className="text-[11px] text-muted-foreground">Minimum 8 characters</p>
             </div>
 
             <div className="pt-2">

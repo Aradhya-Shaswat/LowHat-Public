@@ -4,6 +4,7 @@ import { teams, teamMembers, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { createTeamAction } from "@/app/actions/team";
 
 export default async function TeamManagementPage() {
   const session = await verifySession();
@@ -11,7 +12,6 @@ export default async function TeamManagementPage() {
     redirect("/");
   }
 
-  // Find user's team
   const tm = await db.select({
     team: teams,
   })
@@ -39,7 +39,7 @@ export default async function TeamManagementPage() {
   }
 
   return (
-    <div className="flex flex-col py-12 px-8 max-w-4xl mx-auto min-h-full">
+    <div className="flex flex-col py-12 px-8 max-w-4xl min-h-full">
       <header className="mb-10 border-b border-border pb-8">
         <h1 className="text-3xl font-heading text-foreground mb-2">Team Management</h1>
         <p className="text-muted-foreground text-sm">Manage your execution unit, roles, and verifications.</p>
@@ -51,16 +51,16 @@ export default async function TeamManagementPage() {
           <p className="text-sm text-muted-foreground mb-6 max-w-xl leading-relaxed">
             Freelancers cannot bid solo. You must form a micro-agency unit to pool your reputation and execute on contracts.
           </p>
-          <form className="space-y-4 max-w-md">
+          <form action={createTeamAction} className="space-y-4 max-w-md">
             <div>
               <label className="text-xs font-medium text-foreground uppercase tracking-wider mb-2 block">Unit Name</label>
-              <input type="text" placeholder="e.g. Acme Backend Ops" className="w-full px-3 py-2 bg-transparent border border-border rounded-md text-sm outline-none focus:border-foreground/30" />
+              <input name="name" type="text" placeholder="e.g. Acme Backend Ops" required className="w-full px-3 py-2 bg-transparent border border-border rounded-md text-sm outline-none focus:border-foreground/30" />
             </div>
             <div>
               <label className="text-xs font-medium text-foreground uppercase tracking-wider mb-2 block">Description</label>
-              <textarea placeholder="Describe your capabilities..." className="w-full px-3 py-2 bg-transparent border border-border rounded-md text-sm outline-none focus:border-foreground/30 h-24 resize-y"></textarea>
+              <textarea name="description" placeholder="Describe your capabilities..." className="w-full px-3 py-2 bg-transparent border border-border rounded-md text-sm outline-none focus:border-foreground/30 h-24 resize-y"></textarea>
             </div>
-            <Button type="button" className="bg-foreground text-background w-full">Create Unit</Button>
+            <Button type="submit" className="bg-foreground text-background w-full">Create Unit</Button>
           </form>
         </div>
       ) : (
@@ -93,9 +93,7 @@ export default async function TeamManagementPage() {
                  </div>
                ))}
              </div>
-             <div className="mt-4 flex justify-end">
-                <Button variant="outline">Invite Member</Button>
-             </div>
+             
           </div>
         </div>
       )}

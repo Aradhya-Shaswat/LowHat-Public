@@ -6,6 +6,7 @@ import { eq, desc } from "drizzle-orm";
 import { verifySession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { ArrowLeft, CheckCircle, Shield, Sparkles } from "lucide-react";
+import { acceptBidAction } from "@/app/actions/jobs";
 
 export default async function JobDetailView({ params }: { params: { jobId: string } }) {
   const session = await verifySession();
@@ -13,13 +14,11 @@ export default async function JobDetailView({ params }: { params: { jobId: strin
     redirect("/");
   }
 
-  // Fetch Job
   const [job] = await db.select().from(jobs).where(eq(jobs.id, params.jobId)).limit(1);
   if (!job || job.clientId !== session.userId) {
     redirect("/my-jobs");
   }
 
-  // Fetch Bids with Team info
   const jobBids = await db.select({
     bid: bids,
     team: teams,
@@ -30,7 +29,7 @@ export default async function JobDetailView({ params }: { params: { jobId: strin
   .orderBy(desc(bids.createdAt));
 
   return (
-    <div className="flex flex-col py-12 px-8 max-w-6xl mx-auto min-h-full">
+    <div className="flex flex-col py-12 px-8 max-w-6xl min-h-full">
       <div className="mb-10">
         <Link href="/my-jobs" className="text-muted-foreground hover:text-foreground inline-flex items-center text-sm font-medium transition-colors mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to postings
@@ -82,10 +81,13 @@ export default async function JobDetailView({ params }: { params: { jobId: strin
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">Bid Amount: <span className="font-medium text-foreground">${(entry.bid.amount / 100).toLocaleString()}</span></p>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">Message Unit</Button>
-                    <Button className="bg-foreground text-background hover:bg-foreground/90 size-sm">Accept Bid</Button>
-                  </div>
+                  <form action={acceptBidAction} className="flex gap-2">
+                    <input type="hidden" name="bidId" value={entry.bid.id} />
+                    <input type="hidden" name="jobId" value={job.id} />
+                    <input type="hidden" name="teamId" value={entry.team?.id} />
+                    <Button type="button" variant="outline" size="sm">Message Unit</Button>
+                    <Button type="submit" className="bg-foreground text-background hover:bg-foreground/90 size-sm">Accept Bid</Button>
+                  </form>
                 </div>
 
                 <div className="bg-background border border-border/50 p-4 rounded-md mt-4">

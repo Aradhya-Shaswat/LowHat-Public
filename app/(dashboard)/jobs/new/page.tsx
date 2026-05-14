@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 
 export default function PostJobPage() {
   return (
-    <div className="max-w-2xl mx-auto py-12 px-4 sm:px-6">
+    <div className="max-w-2xl py-12 px-4 sm:px-6">
       <header className="mb-12">
         <h1 className="text-3xl font-heading mb-2">Scope a new project</h1>
         <p className="text-muted-foreground text-sm">Post a detailed execution brief. Be deliberate. Top teams optimize for clarity.</p>

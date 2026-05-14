@@ -1,9 +1,5 @@
-import { createAuthClient } from "better-auth/react";
-import { emailOTPClient } from "better-auth/client/plugins";
+"use client";
 
-export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_NEON_AUTH_BASE_URL,
-  plugins: [emailOTPClient()],
-});
+import { createAuthClient } from "@neondatabase/auth/next";
 
-export const { signIn, signUp, useSession, signOut } = authClient;
+export const authClient = createAuthClient();

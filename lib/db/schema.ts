@@ -1,20 +1,53 @@
 import { pgTable, text, timestamp, pgEnum, varchar, integer, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// Better Auth manages the user table in the public schema.
-// IDs are text (not UUID) — this matches Better Auth's defaults.
 export const users = pgTable('user', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
   emailVerified: boolean('emailVerified').notNull().default(false),
   image: text('image'),
-  role: text('role').default('client'), // 'client' | 'freelancer' | 'admin'
+  role: text('role').default('client'),
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
 });
 
-// Enums
+export const session = pgTable("session", {
+  id: text("id").primaryKey(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("createdAt").notNull(),
+  updatedAt: timestamp("updatedAt").notNull(),
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  userId: text("userId").notNull().references(()=> users.id)
+});
+
+export const account = pgTable("account", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId").notNull(),
+  providerId: text("providerId").notNull(),
+  userId: text("userId").notNull().references(()=> users.id),
+  accessToken: text("accessToken"),
+  refreshToken: text("refreshToken"),
+  idToken: text("idToken"),
+  accessTokenExpiresAt: timestamp("accessTokenExpiresAt"),
+  refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("createdAt").notNull(),
+  updatedAt: timestamp("updatedAt").notNull()
+});
+
+export const verification = pgTable("verification", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt"),
+  updatedAt: timestamp("updatedAt")
+});
+
 export const teamRoleEnum = pgEnum('team_role', ['owner', 'member']);
 export const jobStatusEnum = pgEnum('job_status', ['open', 'bidding', 'in_progress', 'completed', 'cancelled', 'disputed']);
 export const bidStatusEnum = pgEnum('bid_status', ['pending', 'accepted', 'rejected', 'withdrawn']);
@@ -25,7 +58,6 @@ export const verificationStatusEnum = pgEnum('verification_status', ['pending', 
 export const attachmentRelatedTypeEnum = pgEnum('attachment_related_type', ['message', 'job', 'project', 'delivery']);
 export const disputeStatusEnum = pgEnum('dispute_status', ['open', 'resolved', 'escalated']);
 
-// Profiles
 export const clientProfiles = pgTable('client_profiles', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull().unique(),
@@ -46,7 +78,6 @@ export const freelancerProfiles = pgTable('freelancer_profiles', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Teams
 export const teams = pgTable('teams', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: varchar('name', { length: 255 }).notNull(),
@@ -63,7 +94,6 @@ export const teamMembers = pgTable('team_members', {
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 });
 
-// Jobs & Bidding
 export const jobs = pgTable('jobs', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   clientId: text('client_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
@@ -87,7 +117,6 @@ export const bids = pgTable('bids', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Execution
 export const projects = pgTable('projects', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   jobId: text('job_id').references(() => jobs.id).notNull().unique(),
@@ -111,7 +140,6 @@ export const milestones = pgTable('milestones', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Messaging
 export const messageThreads = pgTable('message_threads', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
@@ -144,7 +172,6 @@ export const messageReads = pgTable('message_reads', {
   readAt: timestamp('read_at').defaultNow().notNull(),
 });
 
-// Reviews
 export const reviews = pgTable('reviews', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
@@ -156,7 +183,6 @@ export const reviews = pgTable('reviews', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Notifications
 export const notifications = pgTable('notifications', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
@@ -168,7 +194,6 @@ export const notifications = pgTable('notifications', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Verifications
 export const verifications = pgTable('verifications', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   targetType: verificationTargetTypeEnum('target_type').notNull(),
@@ -181,7 +206,6 @@ export const verifications = pgTable('verifications', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Attachments
 export const attachments = pgTable('attachments', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   uploaderId: text('uploader_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
@@ -196,7 +220,6 @@ export const attachments = pgTable('attachments', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Disputes
 export const disputes = pgTable('disputes', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
@@ -207,7 +230,6 @@ export const disputes = pgTable('disputes', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Admin Actions
 export const adminActions = pgTable('admin_actions', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   adminId: text('admin_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
@@ -218,7 +240,6 @@ export const adminActions = pgTable('admin_actions', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   clientProfile: one(clientProfiles, { fields: [users.id], references: [clientProfiles.userId] }),
   freelancerProfile: one(freelancerProfiles, { fields: [users.id], references: [freelancerProfiles.userId] }),

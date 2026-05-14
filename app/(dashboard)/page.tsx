@@ -7,9 +7,8 @@ import { eq, desc, inArray } from "drizzle-orm";
 
 export default async function ExecutionBoardPage() {
   const session = await verifySession();
-  const role = session?.role || "freelancer"; // Default to show general view if somehow bypassed layout
+  const role = session?.role || "freelancer";
   
-  // 1. Fetch Global Job Market
   const openJobs = await db.select({
     job: jobs,
     client: users,
@@ -21,14 +20,12 @@ export default async function ExecutionBoardPage() {
   .where(inArray(jobs.status, ["open", "bidding"]))
   .orderBy(desc(jobs.createdAt));
 
-  // 2. Count bids manually (simple version for MVP)
   const jobIds = openJobs.map((j) => j.job.id);
   let bidsData: { jobId: string; id: string }[] = [];
   if (jobIds.length > 0) {
     bidsData = await db.select({ jobId: bids.jobId, id: bids.id }).from(bids);
   }
 
-  // 3. Right Sidebar context: Get freelancer's team
   let userTeam = null;
   if (role === "freelancer" && session) {
     const tm = await db.select({ team: teams })
@@ -42,11 +39,10 @@ export default async function ExecutionBoardPage() {
   }
 
   return (
-    <div className="flex flex-col py-12 px-8 max-w-6xl mx-auto min-h-full">
+    <div className="flex flex-col py-12 px-8 max-w-6xl min-h-full">
       <main className="flex-1">
         <div className="flex flex-col md:flex-row gap-12 relative items-start">
           
-          {/* Main Feed */}
           <div className="flex-1 space-y-8">
             <header className="flex items-center justify-between border-b border-border pb-8">
               <div>
@@ -97,7 +93,6 @@ export default async function ExecutionBoardPage() {
             </div>
           </div>
 
-          {/* Right Sidebar: Context or Team State */}
           <aside className="w-full md:w-[300px] space-y-6 sticky top-12">
             {role === "freelancer" ? (
               userTeam ? (

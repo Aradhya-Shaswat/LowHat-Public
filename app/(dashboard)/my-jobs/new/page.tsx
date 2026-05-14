@@ -13,7 +13,6 @@ export default function NewJobPage() {
 
   const simulateAIAssist = async () => {
     setIsAIAnalyzing(true);
-    // Simulate API delay
     await new Promise((r) => setTimeout(r, 1200));
     setDescription((prev) => 
       prev + "\n\n---\nAI Suggested Requirements:\n- Must demonstrate capability to deploy on scalable edge infrastructure.\n- Timeline: Expecting delivery in 4-6 weeks.\n- Communication: Weekly syncs required."
@@ -22,7 +21,7 @@ export default function NewJobPage() {
   };
 
   return (
-    <div className="flex flex-col py-12 px-8 max-w-3xl mx-auto min-h-full">
+    <div className="flex flex-col py-12 px-8 max-w-3xl min-h-full">
       <div className="mb-8">
         <Link href="/my-jobs" className="text-muted-foreground hover:text-foreground inline-flex items-center text-sm font-medium transition-colors mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to postings

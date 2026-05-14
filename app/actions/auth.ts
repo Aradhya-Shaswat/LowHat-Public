@@ -4,33 +4,47 @@ import { db } from "@/lib/db";
 import { clientProfiles, freelancerProfiles, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-export async function initProfileAction(userId: string, intent: "client" | "freelancer" | "admin") {
+export async function initProfileAction(userId: string, intent: "client" | "freelancer" | "admin", email: string, name: string) {
   try {
-    // Verify user exists (Better Auth created them)
-    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    let [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+
     if (!user) {
-      return { error: "User not found." };
+      [user] = await db
+        .insert(users)
+        .values({
+          id: userId,
+          email,
+          name,
+          role: intent,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: users.email,
+          set: { role: intent, name, updatedAt: new Date() },
+        })
+        .returning();
+    } else {
+      await db.update(users).set({ role: intent, updatedAt: new Date() }).where(eq(users.id, user.id));
     }
 
-    // Create role-specific profile
+    const effectiveId = user.id;
+
     if (intent === "client") {
-      const existing = await db.select().from(clientProfiles).where(eq(clientProfiles.userId, userId));
+      const existing = await db.select().from(clientProfiles).where(eq(clientProfiles.userId, effectiveId));
       if (existing.length === 0) {
-        await db.insert(clientProfiles).values({ userId });
+        await db.insert(clientProfiles).values({ userId: effectiveId });
       }
     } else if (intent === "freelancer") {
-      const existing = await db.select().from(freelancerProfiles).where(eq(freelancerProfiles.userId, userId));
+      const existing = await db.select().from(freelancerProfiles).where(eq(freelancerProfiles.userId, effectiveId));
       if (existing.length === 0) {
-        await db.insert(freelancerProfiles).values({ userId });
+        await db.insert(freelancerProfiles).values({ userId: effectiveId });
       }
     }
-
-    // Set role on the user record
-    await db.update(users).set({ role: intent }).where(eq(users.id, userId));
 
     return { success: true };
   } catch (err: any) {
-    console.error("Profile initialization error:", err);
-    return { error: "Failed to initialize profile." };
+    console.error("initProfileAction error:", err);
+    return { error: "Failed to initialize profile: " + (err.message || String(err)) };
   }
 }

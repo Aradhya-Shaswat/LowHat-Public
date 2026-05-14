@@ -26,7 +26,6 @@ export default async function ProjectsPage() {
     .where(eq(projects.clientId, session.userId))
     .orderBy(desc(projects.createdAt));
   } else if (session.role === "freelancer") {
-    // get user's team(s)
     const tms = await db.select({ teamId: teamMembers.teamId }).from(teamMembers).where(eq(teamMembers.userId, session.userId));
     const teamIds = tms.map(t => t.teamId);
 
@@ -45,7 +44,7 @@ export default async function ProjectsPage() {
   }
 
   return (
-    <div className="flex flex-col py-12 px-8 max-w-5xl mx-auto min-h-full">
+    <div className="flex flex-col py-12 px-8 max-w-5xl min-h-full">
       <header className="flex items-center justify-between border-b border-border pb-8 mb-8">
         <div>
           <h1 className="text-3xl font-heading text-foreground mb-2">Active Projects</h1>
