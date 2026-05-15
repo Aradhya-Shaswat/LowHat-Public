@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { jobs, bids } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { verifySession } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { JobListItem } from "@/components/job-list-item";
 
 export default async function MyJobsPage() {
   const session = await verifySession();
@@ -27,45 +27,31 @@ export default async function MyJobsPage() {
     <div className="flex flex-col py-12 px-8 md:px-12 w-full min-h-full">
       <header className="flex items-center justify-between border-b border-border pb-8 mb-8">
         <div>
-          <h1 className="text-3xl font-heading text-foreground mb-2">My Postings</h1>
-          <p className="text-muted-foreground text-sm">Manage your open jobs and compare team bids.</p>
+          <h1 className="text-4xl font-heading text-foreground mb-3">Postings</h1>
+          <p className="text-muted-foreground text-sm">Central board for your active execution contracts and unit bids.</p>
         </div>
-        <Link href="/my-jobs/new">
-          <Button className="rounded-md font-medium px-6 shadow-sm">Post a Job</Button>
+        <Link href="/my-jobs/new" className="bg-foreground text-background text-[11px] font-bold uppercase tracking-widest px-8 py-3 rounded-sm hover:opacity-90 transition-opacity">
+          Post a Job
         </Link>
       </header>
 
       {clientJobs.length === 0 ? (
-        <div className="text-center py-24">
-          <h3 className="font-serif text-lg text-foreground mb-2">No Active Postings</h3>
-          <p className="text-sm text-muted-foreground mb-6">You haven't posted any jobs to the execution board yet.</p>
-          <Link href="/my-jobs/new">
-            <Button variant="outline">Create your first job</Button>
+        <div className="py-32 text-center">
+          <h3 className="font-serif text-3xl text-foreground/30 italic mb-4">The board is empty.</h3>
+          <Link href="/my-jobs/new" className="text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground underline underline-offset-8 decoration-1 transition-colors">
+            Initialize your first contract
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="flex flex-col">
           {clientJobs.map((job) => {
-            const jobBids = bidsData.filter((b) => b.jobId === job.id);
+            const jobBidsCount = bidsData.filter((b) => b.jobId === job.id).length;
             return (
-              <Link key={job.id} href={`/my-jobs/${job.id}`} className="block group py-6 border-b border-border/60 hover:border-foreground/40 transition-colors">
-                <div className="space-y-1 mb-3">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className={`text-xs font-semibold uppercase tracking-wider font-sans ${job.status === "open" ? "text-primary" : "text-muted-foreground"}`}>
-                      {job.status.replace("_", " ")}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-sans tracking-tight">
-                      Budget: ${(job.budgetMin! / 100).toLocaleString()} - ${(job.budgetMax! / 100).toLocaleString()}
-                    </span>
-                  </div>
-                  <h3 className="text-2xl font-serif text-foreground group-hover:text-foreground/80 transition-colors">{job.title}</h3>
-                </div>
-                <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed font-sans max-w-3xl">{job.description}</p>
-                <div className="flex items-center justify-between mt-6">
-                  <span className="text-sm font-medium text-foreground font-sans">You</span>
-                  <span className="text-sm font-medium text-foreground font-sans">{jobBids.length} bids</span>
-                </div>
-              </Link>
+              <JobListItem 
+                key={job.id} 
+                job={job} 
+                bidsCount={jobBidsCount} 
+              />
             );
           })}
         </div>

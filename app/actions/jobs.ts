@@ -1,10 +1,11 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { jobs, bids, teams, teamMembers, projects, messageThreads } from "@/lib/db/schema";
+import { jobs, bids, teams, teamMembers, projects, messageThreads, notifications } from "@/lib/db/schema";
 import { verifySession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 
 export async function createJobAction(prevState: any, formData: FormData) {
   const session = await verifySession();
@@ -69,6 +70,13 @@ export async function submitBidAction(prevState: any, formData: FormData) {
   }
 
   try {
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
+    if (!job) return { error: "Job not found." };
+
+    if (job.budgetMin && (amount * 100) < job.budgetMin) {
+      return { error: `Bid amount must be at least $${(job.budgetMin / 100).toLocaleString()}.` };
+    }
+
     const tm = await db.select({ teamId: teamMembers.teamId })
       .from(teamMembers)
       .where(eq(teamMembers.userId, session.userId))
@@ -78,6 +86,15 @@ export async function submitBidAction(prevState: any, formData: FormData) {
       return { error: "You must join a team to bid." };
     }
 
+    const existingBid = await db.select({ id: bids.id })
+      .from(bids)
+      .where(and(eq(bids.jobId, jobId), eq(bids.teamId, tm[0].teamId)))
+      .limit(1);
+
+    if (existingBid.length > 0) {
+      return { error: "Your team has already submitted a bid for this project." };
+    }
+
     await db.insert(bids).values({
       jobId,
       teamId: tm[0].teamId,
@@ -85,6 +102,15 @@ export async function submitBidAction(prevState: any, formData: FormData) {
       proposal,
       status: "pending",
     });
+
+    await db.insert(notifications).values({
+      userId: job.clientId,
+      type: "bid",
+      title: "New Execution Bid",
+      content: `A new bid of $${amount.toLocaleString()} has been submitted for "${job.title}".`,
+      actionUrl: `/my-jobs/${jobId}`,
+    });
+
   } catch (err) {
     return { error: "Failed to submit bid." };
   }
@@ -132,9 +158,62 @@ export async function acceptBidAction(formData: FormData) {
       projectId: newProject.id,
     });
 
-  } catch (err) {
+    const members = await db.select({ userId: teamMembers.userId })
+      .from(teamMembers)
+      .where(eq(teamMembers.teamId, teamId));
 
+    for (const member of members) {
+      await db.insert(notifications).values({
+        userId: member.userId,
+        type: "project",
+        title: "Contract Awarded",
+        content: `Your unit's bid for "${job.title}" has been accepted. Execution has begun.`,
+        actionUrl: `/projects/${newProject.id}`,
+      });
+    }
+
+  } catch (err) {
+    console.error("Accept bid error:", err);
   }
 
   redirect("/projects");
+}
+
+export async function updateMilestoneAssigneeAction(
+  milestoneId: string,
+  assignedTo: "team" | "client"
+): Promise<{ error?: string; success?: boolean }> {
+  const session = await verifySession();
+  if (!session?.isAuth) return { error: "Unauthorized" };
+
+  const { milestones, projects } = await import("@/lib/db/schema");
+  const { eq: eqOp } = await import("drizzle-orm");
+
+  const [milestone] = await db
+    .select({ id: milestones.id, projectId: milestones.projectId })
+    .from(milestones)
+    .where(eqOp(milestones.id, milestoneId))
+    .limit(1);
+
+  if (!milestone) return { error: "Milestone not found" };
+
+  const [project] = await db
+    .select({ clientId: projects.clientId, teamId: projects.teamId })
+    .from(projects)
+    .where(eqOp(projects.id, milestone.projectId))
+    .limit(1);
+
+  if (!project) return { error: "Project not found" };
+
+  if (project.clientId !== session.userId) {
+    return { error: "Only the client can reassign deliverables." };
+  }
+
+  await db
+    .update(milestones)
+    .set({ assignedTo, updatedAt: new Date() })
+    .where(eqOp(milestones.id, milestoneId));
+
+  revalidatePath("/projects");
+  return { success: true };
 }

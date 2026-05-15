@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { verifySession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { SidebarNav } from "./sidebar-nav";
 import { LogoutButton } from "@/components/logout-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { db } from "@/lib/db";
-import { teams, teamMembers } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { teams, teamMembers, notifications } from "@/lib/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 
 export default async function DashboardLayout({
   children,
@@ -33,6 +34,12 @@ export default async function DashboardLayout({
       userTeam = tm[0].team;
     }
   }
+
+    const unreadNotificationsCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(and(eq(notifications.userId, session.userId), eq(notifications.isRead, false)))
+      .then(res => Number(res[0].count));
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -63,27 +70,29 @@ export default async function DashboardLayout({
         <div className="p-4 border-t border-border flex flex-col gap-4">
           {role === "freelancer" && (
             userTeam ? (
-              <details className="mx-3 mt-4 group">
-                <summary className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer select-none mb-2 hover:text-foreground transition-colors outline-none">
-                  Execution Unit
-                  <span className="transition-transform group-open:rotate-180">▼</span>
+              <details className="mx-0 mt-4 group">
+                <summary className="flex items-center justify-between px-3 py-2 text-xs font-semibold tracking-wider text-muted-foreground cursor-pointer select-none hover:text-foreground hover:bg-secondary/30 rounded-md transition-all outline-none h-10">
+                  <span className="truncate">Execution unit</span>
+                  <div className="w-10 h-10 flex items-center justify-center shrink-0 -mr-3">
+                    <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+                  </div>
                 </summary>
-                <div className="flex flex-col gap-3 pl-3 border-l border-border/50 ml-1 py-1 mt-3">
+                <div className="flex flex-col gap-3 pl-6 pr-3 py-1 mt-1 border-l-2 border-border/30 ml-5">
                   <div className="text-sm font-serif text-foreground">{userTeam.name}</div>
-                  <div className="flex justify-between items-center text-xs">
+                  <div className="flex justify-between items-center text-[11px]">
                     <span className="text-muted-foreground">Reputation</span>
                     <span className="text-foreground">5.0 / 5</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs">
+                  <div className="flex justify-between items-center text-[11px]">
                     <span className="text-muted-foreground">Capacity</span>
-                    <span className="text-primary font-medium">High</span>
+                    <span className="text-emerald-600 font-medium">High</span>
                   </div>
                 </div>
               </details>
             ) : (
-              <div className="px-4 py-3 mx-2 mt-4 rounded-md bg-secondary/30 text-left flex flex-col gap-2">
+              <div className="px-3 py-3 mt-4 rounded-md bg-secondary/30 text-left flex flex-col gap-2">
                 <h4 className="text-sm font-serif text-foreground">Join a Team</h4>
-                <p className="text-[10px] text-muted-foreground leading-relaxed uppercase tracking-wider">Form a unit to bid.</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed tracking-wider">Form a unit to bid.</p>
                 <Link href="/team" className="text-xs font-medium text-foreground hover:underline mt-1">
                   Initialize Unit →
                 </Link>
@@ -92,22 +101,33 @@ export default async function DashboardLayout({
           )}
 
           <div className="space-y-1">
-          <Link href="/notifications" className="block px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary/30 hover:text-foreground font-medium text-sm transition-colors font-sans">
-            Inbox
-          </Link>
-          <div className="flex items-center justify-between px-3 py-2 group rounded-md hover:bg-secondary/30 transition-colors">
-            <Link href="/profile" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors font-sans cursor-pointer flex-1 py-1">
-              <span className="h-8 w-8 rounded-full bg-foreground text-background text-xs flex items-center justify-center font-medium transition-colors flex-shrink-0 font-serif">
-                {role.charAt(0).toUpperCase()}
-              </span>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-foreground">Profile</span>
-                <span className="text-[10px] uppercase font-sans tracking-widest text-muted-foreground">{role}</span>
+            <div className="flex items-center justify-between gap-1 px-0 h-10 group">
+              <Link href="/notifications" className="flex-1 flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-secondary/30 hover:text-foreground font-medium text-sm transition-colors font-sans overflow-hidden">
+                <span className="truncate flex items-center gap-2">
+                  Inbox
+                  {unreadNotificationsCount > 0 && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  )}
+                </span>
+              </Link>
+              <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                <ThemeToggle />
               </div>
-            </Link>
-            <LogoutButton />
+            </div>
+            <div className="flex items-center justify-between px-0 h-10 group rounded-md transition-colors">
+              <Link href="/profile" className="flex-1 flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary/30 rounded-md transition-colors font-sans cursor-pointer overflow-hidden">
+                <span className="h-7 w-7 rounded-full bg-foreground text-background text-[10px] flex items-center justify-center font-bold transition-colors flex-shrink-0 font-serif">
+                  {role.charAt(0).toUpperCase()}
+                </span>
+                <div className="flex flex-col truncate">
+                  <span className="text-sm font-medium text-foreground truncate">Profile</span>
+                </div>
+              </Link>
+              <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                <LogoutButton />
+              </div>
+            </div>
           </div>
-        </div>
         </div>
       </aside>
 

@@ -19,6 +19,20 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
     );
   }
 
+  const isOwner = session?.userId === job.clientId;
+  const isAdmin = session?.role === "admin";
+
+  if (job.moderationStatus !== "approved" && !isOwner && !isAdmin) {
+    return (
+      <div className="flex flex-col py-12 px-8 max-w-4xl min-h-full">
+        <div className="text-center py-12">
+          <h2 className="text-xl font-serif mb-2">Review Pending</h2>
+          <p className="text-muted-foreground text-sm">This contract is currently under moderation and is not yet public.</p>
+        </div>
+      </div>
+    );
+  }
+
   const [client] = await db.select({
     user: users,
     profile: clientProfiles,

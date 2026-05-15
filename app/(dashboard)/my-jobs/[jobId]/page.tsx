@@ -4,7 +4,7 @@ import { jobs, bids, teams } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { verifySession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Shield, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, AlertCircle } from "lucide-react";
 import { acceptBidAction } from "@/app/actions/jobs";
 
 export default async function JobDetailView({ params }: { params: Promise<{ jobId: string }> }) {
@@ -34,15 +34,41 @@ export default async function JobDetailView({ params }: { params: Promise<{ jobI
         <Link href="/my-jobs" className="text-muted-foreground hover:text-foreground inline-flex items-center text-sm font-medium transition-colors mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to My Postings
         </Link>
-        <div className="flex items-center justify-between mb-2">
-          <span className={`text-xs font-semibold uppercase tracking-wider font-sans ${job.status === "open" ? "text-primary" : "text-muted-foreground"}`}>
-            {job.status.replace("_", " ")}
-          </span>
-          <span className="text-xs text-muted-foreground font-sans tracking-tight">
-            Budget: ${(job.budgetMin! / 100).toLocaleString()} - ${(job.budgetMax! / 100).toLocaleString()}
-          </span>
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <span className={`text-xs font-semibold uppercase tracking-wider font-sans block ${job.status === "open" ? "text-emerald-600" : "text-muted-foreground"}`}>
+                {job.status.replace("_", " ")}
+              </span>
+              {job.moderationStatus !== "approved" && (
+                <div className="flex items-center gap-3 text-[10px] font-bold tracking-tight">
+                  <span className="text-muted-foreground">/</span>
+                  <span className={`uppercase tracking-widest ${
+                    job.moderationStatus === "pending" ? "text-amber-600" : "text-rose-600"
+                  }`}>
+                    {job.moderationStatus === "pending" ? "Awaiting Review" : `Moderation: ${job.moderationStatus}`}
+                  </span>
+                </div>
+              )}
+            </div>
+            <h1 className="text-4xl font-heading text-foreground mb-4">{job.title}</h1>
+          </div>
+          <div className="text-right pt-2">
+            <span className="text-sm font-medium text-foreground font-sans tracking-tight">
+              ${(job.budgetMin! / 100).toLocaleString()} – ${(job.budgetMax! / 100).toLocaleString()}
+            </span>
+          </div>
         </div>
-        <h1 className="text-3xl font-heading text-foreground mb-4">{job.title}</h1>
+        
+        {job.moderationStatus === "rejected" && job.moderationReason && (
+          <div className="mb-10 pl-6 border-l-2 border-rose-500/20 py-1">
+            <h4 className="text-[10px] font-bold uppercase tracking-widest text-rose-600/60 mb-2">Executive Feedback</h4>
+            <p className="text-xl font-serif italic text-rose-600 leading-relaxed">
+              &ldquo;{job.moderationReason}&rdquo;
+            </p>
+          </div>
+        )}
+
         <p className="text-muted-foreground text-sm max-w-3xl leading-relaxed">
           {job.description}
         </p>
@@ -51,11 +77,6 @@ export default async function JobDetailView({ params }: { params: Promise<{ jobI
       <div className="space-y-6">
         <div className="flex items-center justify-between border-b border-border pb-4">
           <h2 className="text-xl font-serif text-foreground">Submitted Bids ({jobBids.length})</h2>
-          {jobBids.length > 1 && (
-            <div className="flex items-center text-xs font-medium text-secondary-foreground bg-secondary/40 px-3 py-1.5 rounded-md border border-secondary">
-              <Sparkles className="w-3.5 h-3.5 mr-2" /> AI Summary Available
-            </div>
-          )}
         </div>
 
         {jobBids.length === 0 ? (
@@ -70,13 +91,19 @@ export default async function JobDetailView({ params }: { params: Promise<{ jobI
                   <div>
                     <h3 className="text-lg font-serif text-foreground flex items-center gap-2">
                       {entry.team?.name}
+                      {entry.team?.moderationStatus === "approved" && (
+                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/20" title="Verified Unit">
+                          <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                        </span>
+                      )}
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">Bid Amount: <span className="font-medium text-foreground">${(entry.bid.amount / 100).toLocaleString()}</span></p>
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" className="inline-flex items-center justify-center rounded-lg font-medium transition-all outline-none select-none border border-border hover:bg-secondary/50 px-4 h-8 text-xs text-muted-foreground hover:text-foreground">Message Unit</button>
                     {entry.bid.status === "accepted" ? (
-                      <span className="inline-flex items-center justify-center rounded-lg font-medium transition-all px-4 h-8 text-xs bg-primary/10 text-primary border border-primary/20">Bid Accepted</span>
+                      <span className="inline-flex items-center justify-center font-bold uppercase tracking-widest px-4 h-7 text-[10px] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-sm">
+                        Accepted Proposal
+                      </span>
                     ) : job.status === "open" ? (
                       <form action={acceptBidAction}>
                         <input type="hidden" name="bidId" value={entry.bid.id} />
@@ -94,15 +121,6 @@ export default async function JobDetailView({ params }: { params: Promise<{ jobI
                     {entry.bid.proposal}
                   </p>
                 </div>
-
-                {jobBids.length > 1 && (
-                  <div className="mt-4 pt-4 border-t border-border/50 flex gap-2">
-                    <Sparkles className="w-4 h-4 text-muted-foreground mt-0.5" />
-                    <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
-                      <strong className="text-foreground font-medium">AI Comparison:</strong> {entry.team?.name} offers a higher technical focus but is priced nearer the max budget. Their past metrics indicate faster delivery limits.
-                    </p>
-                  </div>
-                )}
               </div>
             ))}
           </div>

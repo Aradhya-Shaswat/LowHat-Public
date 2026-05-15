@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { jobs, users, clientProfiles, bids, teams, teamMembers } from "@/lib/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import { eq, desc, inArray, and } from "drizzle-orm";
 
 export default async function ExecutionBoardPage() {
   const session = await verifySession();
@@ -17,7 +17,12 @@ export default async function ExecutionBoardPage() {
   .from(jobs)
   .leftJoin(users, eq(jobs.clientId, users.id))
   .leftJoin(clientProfiles, eq(clientProfiles.userId, users.id))
-  .where(inArray(jobs.status, ["open", "bidding"]))
+  .where(
+    and(
+      inArray(jobs.status, ["open", "bidding"]),
+      eq(jobs.moderationStatus, "approved")
+    )
+  )
   .orderBy(desc(jobs.createdAt));
 
   const jobIds = openJobs.map((j) => j.job.id);
@@ -73,15 +78,15 @@ export default async function ExecutionBoardPage() {
                   <Link key={entry.job.id} href={`/jobs/${entry.job.id}`} className="block group py-6 border-b border-border/60 hover:border-foreground/40 transition-colors">
                     <div className="flex justify-between items-start mb-3">
                       <div className="space-y-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-sans">
-                            {entry.job.status}
-                          </span>
-                          <span className="text-xs text-muted-foreground font-sans tracking-tight">
-                            Budget: ${(entry.job.budgetMin! / 100).toLocaleString()} - ${(entry.job.budgetMax! / 100).toLocaleString()}
-                          </span>
-                        </div>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-sans block mb-2">
+                          {entry.job.status}
+                        </span>
                         <h3 className="text-2xl font-serif text-foreground group-hover:text-foreground/80 transition-colors">{entry.job.title}</h3>
+                      </div>
+                      <div className="text-right pt-1">
+                        <span className="text-sm font-medium text-foreground font-sans tracking-tight">
+                          ${(entry.job.budgetMin! / 100).toLocaleString()} – ${(entry.job.budgetMax! / 100).toLocaleString()}
+                        </span>
                       </div>
                     </div>
                     <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed font-sans max-w-3xl">

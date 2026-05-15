@@ -57,6 +57,11 @@ export const verificationTargetTypeEnum = pgEnum('verification_target_type', ['u
 export const verificationStatusEnum = pgEnum('verification_status', ['pending', 'approved', 'rejected']);
 export const attachmentRelatedTypeEnum = pgEnum('attachment_related_type', ['message', 'job', 'project', 'delivery']);
 export const disputeStatusEnum = pgEnum('dispute_status', ['open', 'resolved', 'escalated']);
+export const milestoneAssigneeEnum = pgEnum('milestone_assignee', ['team', 'client']);
+export const milestoneStatusEnum = pgEnum('milestone_status', ['pending', 'in_progress', 'completed']);
+
+export const teamModerationStatusEnum = pgEnum('team_moderation_status', ['pending', 'approved', 'rejected', 'suspended']);
+export const jobModerationStatusEnum = pgEnum('job_moderation_status', ['draft', 'pending', 'approved', 'rejected', 'archived']);
 
 export const clientProfiles = pgTable('client_profiles', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -82,6 +87,8 @@ export const teams = pgTable('teams', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
+  moderationStatus: teamModerationStatusEnum('moderation_status').default('pending').notNull(),
+  moderationReason: text('moderation_reason'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -102,6 +109,8 @@ export const jobs = pgTable('jobs', {
   budgetMin: integer('budget_min'),
   budgetMax: integer('budget_max'),
   status: jobStatusEnum('status').default('open').notNull(),
+  moderationStatus: jobModerationStatusEnum('moderation_status').default('pending').notNull(),
+  moderationReason: text('moderation_reason'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -133,9 +142,10 @@ export const milestones = pgTable('milestones', {
   projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
-  amount: integer('amount').notNull(),
-  isCompleted: boolean('is_completed').default(false).notNull(),
+  amount: integer('amount').default(0).notNull(),
+  status: milestoneStatusEnum('status').default('pending').notNull(),
   dueDate: timestamp('due_date'),
+  assignedTo: milestoneAssigneeEnum('assigned_to').default('team').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

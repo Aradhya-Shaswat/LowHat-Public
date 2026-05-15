@@ -1,11 +1,11 @@
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
-import { verifications } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { verifications, jobs, teams, users } from "@/lib/db/schema";
+import { eq, desc, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { Check, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { moderateVerificationAction } from "@/app/actions/admin";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { moderateVerificationAction, moderateJobAction, moderateTeamAction } from "@/app/actions/admin";
+import { ModerationCard } from "@/components/moderation-card";
 
 export default async function AdminModerationPage() {
   const session = await verifySession();
@@ -17,54 +17,101 @@ export default async function AdminModerationPage() {
     .from(verifications)
     .where(eq(verifications.status, "pending"))
     .orderBy(desc(verifications.createdAt));
+
+  const pendingJobs = await db.select({
+    job: jobs,
+    client: users,
+  })
+    .from(jobs)
+    .leftJoin(users, eq(jobs.clientId, users.id))
+    .where(eq(jobs.moderationStatus, "pending"))
+    .orderBy(desc(jobs.createdAt));
+
+  const pendingTeams = await db.select()
+    .from(teams)
+    .where(eq(teams.moderationStatus, "pending"))
+    .orderBy(desc(teams.createdAt));
   
   return (
-    <div className="flex flex-col py-12 px-8 max-w-5xl min-h-full">
-      <header className="mb-10 border-b border-border pb-8">
-        <h1 className="text-3xl font-heading text-foreground mb-2">Moderation Workbench</h1>
-        <p className="text-muted-foreground text-sm">Review verifications, handle disputes, and monitor platform health.</p>
+    <div className="flex flex-col py-12 px-8 md:px-12 w-full min-h-full">
+      <header className="mb-12 border-b border-border pb-8">
+        <h1 className="text-4xl font-heading text-foreground mb-3">Moderation</h1>
+        <p className="text-muted-foreground text-sm max-w-2xl leading-relaxed">
+          Review submissions for quality and trust. Every entry approved here becomes a public record on the LowHat execution board.
+        </p>
       </header>
 
-      <div className="space-y-6">
-        <h2 className="text-xl font-serif text-foreground">Pending Verifications ({pendingVerifications.length})</h2>
-        {pendingVerifications.length === 0 ? (
-          <div className="text-center py-16 border border-dashed border-border rounded-xl bg-card/30">
-            <p className="text-sm text-muted-foreground">Queue is clear. No pending verifications.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {pendingVerifications.map((v) => (
-               <div key={v.id} className="p-5 border border-border rounded-xl bg-card flex justify-between items-center group hover:border-foreground/20 transition-colors">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {v.targetType}
-                      </span>
-                      <span className="text-xs text-muted-foreground">ID: {v.targetTeamId || v.targetUserId}</span>
-                    </div>
-                    <p className="text-sm font-medium text-foreground">Awaiting identity and capability review.</p>
-                  </div>
-                  <form action={moderateVerificationAction} className="flex items-center gap-2">
-                    <input type="hidden" name="verificationId" value={v.id} />
-                    <Button type="submit" name="status" value="rejected" variant="outline" size="sm" className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10">
-                      <X className="w-3.5 h-3.5" /> Reject
-                    </Button>
-                    <Button type="submit" name="status" value="approved" size="sm" className="h-8 gap-1.5 bg-foreground text-background hover:bg-foreground/90">
-                      <Check className="w-3.5 h-3.5" /> Approve
-                    </Button>
-                  </form>
-               </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <Tabs defaultValue="jobs" className="w-full">
+        <TabsList className="bg-transparent border-b border-border w-full justify-start rounded-none h-auto p-0 mb-10">
+          <TabsTrigger value="jobs" className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-4 text-xs font-semibold uppercase tracking-widest transition-all">
+            Jobs ({pendingJobs.length})
+          </TabsTrigger>
+          <TabsTrigger value="teams" className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-4 text-xs font-semibold uppercase tracking-widest transition-all">
+            Units ({pendingTeams.length})
+          </TabsTrigger>
+          <TabsTrigger value="verifications" className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-4 text-xs font-semibold uppercase tracking-widest transition-all">
+            Identities ({pendingVerifications.length})
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="mt-12 space-y-6">
-        <h2 className="text-xl font-serif text-foreground">Active Disputes (0)</h2>
-        <div className="text-center py-16 border border-dashed border-border rounded-xl bg-card/30">
-            <p className="text-sm text-muted-foreground">Platform execution is healthy.</p>
-        </div>
-      </div>
+        <TabsContent value="jobs" className="space-y-0">
+          {pendingJobs.length === 0 ? (
+            <div className="py-24 text-center">
+              <p className="text-sm text-muted-foreground italic font-serif">The job queue is clear.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {pendingJobs.map(({ job, client }) => (
+                <ModerationCard 
+                  key={job.id} 
+                  type="job" 
+                  data={job} 
+                  client={client} 
+                  action={moderateJobAction} 
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="teams" className="space-y-0">
+          {pendingTeams.length === 0 ? (
+            <div className="py-24 text-center">
+              <p className="text-sm text-muted-foreground italic font-serif">All execution units have been processed.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {pendingTeams.map((team) => (
+                <ModerationCard 
+                  key={team.id} 
+                  type="unit" 
+                  data={team} 
+                  action={moderateTeamAction} 
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="verifications" className="space-y-0">
+          {pendingVerifications.length === 0 ? (
+            <div className="py-24 text-center">
+              <p className="text-sm text-muted-foreground italic font-serif">No identity verifications pending.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {pendingVerifications.map((v) => (
+                <ModerationCard 
+                  key={v.id} 
+                  type="identity" 
+                  data={v} 
+                  action={moderateVerificationAction} 
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

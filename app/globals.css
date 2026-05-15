@@ -57,10 +57,9 @@
 }
 
 :root {
-    /* Soft, warm editorial light theme */
-    --background: oklch(0.99 0.005 85);       /* #fcfbf9 */
-    --foreground: oklch(0.2 0.01 250);        /* very dark grey */
-    --card: oklch(1 0 0);                     /* #ffffff */
+    --background: oklch(0.99 0.005 85);       
+    --foreground: oklch(0.2 0.01 250);        
+    --card: oklch(1 0 0);                    
     --card-foreground: oklch(0.2 0.01 250);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.2 0.01 250);
@@ -80,10 +79,9 @@
 }
 
 .dark {
-    /* Sophisticated, professional dark theme (Anthropic/Raycast feel) */
-    --background: oklch(0.15 0.01 260);       /* True dark background */
-    --foreground: oklch(0.95 0.005 260);      /* off-white */
-    --card: oklch(0.18 0.01 260);             /* slightly lighter dark for cards */
+    --background: oklch(0.15 0.01 260);       
+    --foreground: oklch(0.95 0.005 260);     
+    --card: oklch(0.18 0.01 260);             
     --card-foreground: oklch(0.95 0.005 260);
     --popover: oklch(0.18 0.01 260);
     --popover-foreground: oklch(0.95 0.005 260);
@@ -96,7 +94,7 @@
     --accent: oklch(0.25 0.01 260);
     --accent-foreground: oklch(0.95 0.005 260);
     --destructive: oklch(0.6 0.15 25);
-    --border: oklch(0.28 0.01 260);           /* Increased contrast for borders */
+    --border: oklch(0.28 0.01 260);           
     --input: oklch(0.28 0.01 260);
     --ring: oklch(0.6 0.01 260);
 }
@@ -108,8 +106,11 @@
   body {
     @apply bg-background text-foreground antialiased scroll-smooth;
   }
-  h1, h2, h3, h4, h5, h6 {
+  h1, h2, h3 {
     @apply text-foreground font-serif tracking-tight font-medium;
+  }
+  h4, h5, h6 {
+    @apply text-foreground font-sans tracking-tight font-semibold;
   }
   h1 {
     @apply font-heading text-4xl tracking-normal font-normal;
@@ -117,9 +118,30 @@
   p {
     @apply leading-relaxed;
   }
-}
 
-/* ── Global Top Loader ── */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted-foreground) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--muted-foreground);
+    border-radius: 10px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--foreground);
+  }
+}
 
 .top-loader-track {
   position: fixed;
@@ -148,7 +170,6 @@
   position: relative;
 }
 
-/* Subtle glow on the leading edge */
 .top-loader-bar::after {
   content: "";
   position: absolute;
@@ -166,12 +187,10 @@
   border-radius: 1px;
 }
 
-/* Loading: animate from 0% to ~85% with a decelerating curve */
 .top-loader-track[data-phase="loading"] .top-loader-bar {
   animation: top-loader-indeterminate 12s cubic-bezier(0.16, 0.7, 0.3, 0.98) forwards;
 }
 
-/* Completing: snap to 100% width, then the track fades out */
 .top-loader-track[data-phase="completing"] .top-loader-bar {
   width: 100% !important;
   animation: none;
@@ -180,10 +199,10 @@
 
 @keyframes top-loader-indeterminate {
   0%   { width: 0%; }
-  5%   { width: 15%; }    /* fast initial burst */
+  5%   { width: 15%; }   
   20%  { width: 40%; }
   40%  { width: 55%; }
   60%  { width: 68%; }
   80%  { width: 78%; }
-  100% { width: 85%; }    /* never reaches 100% — that's for completion */
+  100% { width: 85%; }   
 }

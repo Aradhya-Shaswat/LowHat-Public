@@ -1,13 +1,11 @@
-import Link from "next/link";
 import { db } from "@/lib/db";
 import { projects, jobs, messageThreads, messages, users, milestones } from "@/lib/db/schema";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { verifySession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { ArrowUp } from "lucide-react";
 import { sendMessageAction } from "@/app/actions/messages";
-
 import { ChatWorkspace } from "@/components/chat-workspace";
+import { DeliverablesSidebar } from "@/components/deliverables-sidebar";
 
 export default async function ProjectWorkspacePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -29,7 +27,7 @@ export default async function ProjectWorkspacePage({ params }: { params: Promise
 
   const [thread] = await db.select().from(messageThreads).where(eq(messageThreads.projectId, project.project.id)).limit(1);
   const projectMilestones = await db.select().from(milestones).where(eq(milestones.projectId, project.project.id)).orderBy(asc(milestones.dueDate));
-  
+
   let threadMessages: { message: typeof messages.$inferSelect, sender: typeof users.$inferSelect }[] = [];
   if (thread) {
     const data = await db.select({
@@ -51,6 +49,8 @@ export default async function ProjectWorkspacePage({ params }: { params: Promise
     isMe: m.sender.id === session.userId
   }));
 
+  const isClient = project.project.clientId === session.userId;
+
   return (
     <div className="flex flex-col h-full bg-background relative w-full">
       <header className="h-20 border-b border-border flex items-center px-8 bg-card flex-shrink-0 sticky top-0 z-10">
@@ -66,29 +66,20 @@ export default async function ProjectWorkspacePage({ params }: { params: Promise
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-80 border-r border-border bg-background p-6 overflow-y-auto hidden md:block">
-          <h2 className="font-serif text-lg text-foreground mb-6">Execution Deliverables</h2>
-          <div className="space-y-4">
-             {projectMilestones.length === 0 ? (
-               <p className="text-xs text-muted-foreground italic">No milestones defined for this contract.</p>
-             ) : (
-               projectMilestones.map((m) => (
-                 <div key={m.id} className={`p-4 border border-border rounded-md bg-card/20 ${m.isCompleted ? 'opacity-60' : 'border-l-4 border-l-primary'}`}>
-                   <h3 className="text-sm font-medium text-foreground">{m.title}</h3>
-                   {m.dueDate && (
-                     <p className="text-xs text-muted-foreground mt-1">Due {new Date(m.dueDate).toLocaleDateString()}</p>
-                   )}
-                   <span className={`text-xs font-semibold mt-2 block uppercase ${m.isCompleted ? 'text-muted-foreground' : 'text-primary'}`}>
-                     {m.isCompleted ? 'Completed' : 'Active'}
-                   </span>
-                 </div>
-               ))
-             )}
-          </div>
-        </aside>
+        <DeliverablesSidebar
+          milestones={projectMilestones.map(m => ({
+            id: m.id,
+            title: m.title,
+            dueDate: m.dueDate ? m.dueDate.toISOString() : null,
+            status: m.status,
+            assignedTo: m.assignedTo,
+          }))}
+          isClient={isClient}
+          projectId={project.project.id}
+        />
 
-        <ChatWorkspace 
-          threadId={thread?.id} 
+        <ChatWorkspace
+          threadId={thread?.id}
           projectId={project.project.id}
           initialMessages={formattedMessages}
           currentUserId={session.userId}
