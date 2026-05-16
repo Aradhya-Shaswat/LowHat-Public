@@ -100,11 +100,18 @@
 }
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
   * {
     @apply border-border outline-ring/30;
   }
   body {
     @apply bg-background text-foreground antialiased scroll-smooth;
+  }
+  
+  html, body {
+    padding-right: 0 !important;
   }
   h1, h2, h3 {
     @apply text-foreground font-serif tracking-tight font-medium;

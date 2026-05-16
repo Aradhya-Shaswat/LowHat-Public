@@ -1,130 +1,119 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { updateTeamAction, type TeamActionResult } from "@/app/actions/team";
-import { Check, AlertCircle, Pencil, HelpCircle, X } from "lucide-react";
+import { updateUnitAction as updateTeamAction, type UnitActionResult as TeamActionResult } from "@/app/actions/units";
+import { Check, AlertCircle, Pencil, HelpCircle, X, Save } from "lucide-react";
 
 interface TeamEditFormProps {
   teamId: string;
   currentName: string;
   currentDescription: string | null;
   moderationStatus: "pending" | "approved" | "rejected" | "suspended";
+  onSuccess?: () => void;
 }
 
-export function TeamEditForm({ teamId, currentName, currentDescription, moderationStatus }: TeamEditFormProps) {
+export function TeamEditForm({ teamId, currentName, currentDescription, moderationStatus, onSuccess }: TeamEditFormProps) {
   const [state, formAction, isPending] = useActionState<TeamActionResult, FormData>(
     updateTeamAction,
     null
   );
-  const [isEditing, setIsEditing] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
     if (state) {
       setShowBanner(true);
       if (state.success) {
-        setIsEditing(false);
-        const timer = setTimeout(() => setShowBanner(false), 3000);
+        const timer = setTimeout(() => {
+          setShowBanner(false);
+          onSuccess?.();
+        }, 1500);
         return () => clearTimeout(timer);
       }
     }
-  }, [state]);
+  }, [state, onSuccess]);
 
-  if (!isEditing) {
-    return (
-      <div className="pb-8 border-b border-border">
-        {showBanner && state?.success && (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium border mb-6 bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/15 animate-in fade-in slide-in-from-top-2 duration-300">
-            <Check className="h-4 w-4 flex-shrink-0" />
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <form action={formAction} className="p-8 rounded-3xl border border-border bg-card shadow-2xl space-y-8">
+        <input type="hidden" name="teamId" value={teamId} />
+        
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h3 className="text-xl font-serif text-foreground">Redefine Unit Identity</h3>
+            <p className="text-xs text-muted-foreground">Ensure your name and mandate reflect your current operational focus.</p>
+          </div>
+        </div>
+
+        {showBanner && state && (
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium border animate-in slide-in-from-top-2 duration-300 ${
+            state.success 
+              ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-400" 
+              : "bg-destructive/10 text-destructive border-destructive/20"
+          }`}>
+            {state.success ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
             {state.message}
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-               <h2 className="text-2xl font-serif text-foreground leading-none">{currentName}</h2>
-               {moderationStatus === "approved" ? (
-                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20" title="Verified Unit">
-                   <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                 </span>
-               ) : moderationStatus === "pending" ? (
-                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/10 border border-amber-500/20" title="Verification Pending">
-                   <HelpCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                 </span>
-               ) : (
-                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-rose-500/10 border border-rose-500/20" title={`Status: ${moderationStatus}`}>
-                   <X className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
-                 </span>
-               )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-secondary/50"
-                title="Edit unit details"
-                aria-label="Edit unit details"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-            </div>
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <label className="text-[10px] font-bold text-foreground uppercase tracking-wider ml-1">Unit Name</label>
+            <input
+              name="name"
+              type="text"
+              defaultValue={currentName}
+              required
+              className="w-full px-4 py-3 bg-foreground/[0.02] border border-border rounded-2xl text-sm outline-none focus:border-foreground/20 focus:bg-transparent transition-all placeholder:text-muted-foreground/50"
+            />
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">{currentDescription}</p>
+          <div className="space-y-3">
+            <label className="text-[10px] font-bold text-foreground uppercase tracking-wider ml-1">Operational Mandate</label>
+            <textarea
+              name="description"
+              defaultValue={currentDescription || ""}
+              placeholder="Describe your collective's unique edge and mission..."
+              className="w-full px-4 py-3 bg-foreground/[0.02] border border-border rounded-2xl text-sm outline-none focus:border-foreground/20 focus:bg-transparent h-32 resize-none transition-all placeholder:text-muted-foreground/50"
+            />
+          </div>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <form action={formAction} className="pb-8 border-b border-border relative">
-      <input type="hidden" name="teamId" value={teamId} />
-
-      {showBanner && state && !state.success && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium border mb-6 bg-destructive/10 text-destructive border-destructive/20 animate-in fade-in slide-in-from-top-2 duration-300">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          {state.message}
-        </div>
-      )}
-
-      <h3 className="text-lg font-serif text-foreground mb-6">Edit Unit Details</h3>
-
-      <div className="space-y-4 max-w-lg">
-        <div className="space-y-2">
-          <label className="mb-3 block  text-xs font-medium text-foreground uppercase tracking-wider">Unit Name</label>
-          <input
-            name="name"
-            type="text"
-            defaultValue={currentName}
-            required
-            className="w-full px-3 py-2 bg-transparent border border-border rounded-md text-sm outline-none focus:border-foreground/30 transition-colors"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="mb-3 block  text-xs font-medium text-foreground uppercase tracking-wider">Description</label>
-          <textarea
-            name="description"
-            defaultValue={currentDescription || ""}
-            placeholder="Describe your capabilities..."
-            className="w-full px-3 py-2 bg-transparent border border-border rounded-md text-sm outline-none focus:border-foreground/30 h-24 resize-y transition-colors"
-          />
-        </div>
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex items-center gap-4 pt-4">
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex shrink-0 items-center justify-center rounded-lg font-medium transition-all outline-none select-none bg-foreground text-background hover:bg-foreground/90 px-6 h-8 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-8 py-3 rounded-2xl bg-foreground text-background text-xs font-bold uppercase tracking-wider hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl shadow-foreground/10"
           >
-            {isPending ? "Saving…" : "Save Changes"}
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {isPending ? "Persisting..." : "Save Identity"}
           </button>
           <button
             type="button"
-            onClick={() => { setIsEditing(false); setShowBanner(false); }}
-            className="inline-flex items-center justify-center rounded-lg font-medium transition-all outline-none select-none border border-border hover:bg-secondary/50 px-6 h-8 text-sm text-muted-foreground hover:text-foreground"
+            onClick={() => onSuccess?.()}
+            className="px-8 py-3 rounded-2xl border border-border hover:bg-foreground/5 text-xs font-bold uppercase tracking-wider transition-all"
           >
-            Cancel
+            Discard
           </button>
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
   );
+}
+
+function Loader2({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  )
 }

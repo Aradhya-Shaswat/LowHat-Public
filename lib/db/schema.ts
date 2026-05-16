@@ -48,11 +48,17 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updatedAt")
 });
 
-export const teamRoleEnum = pgEnum('team_role', ['owner', 'member']);
+export const teamRoleEnum = pgEnum('team_role', ['owner', 'manager', 'member']);
+export const unitStateEnum = pgEnum('unit_state', ['active', 'frozen', 'under_review', 'suspended', 'dissolved']);
+export const joinRequestStatusEnum = pgEnum('join_request_status', ['pending', 'approved', 'rejected', 'withdrawn', 'expired']);
+export const removalRequestStatusEnum = pgEnum('removal_request_status', ['pending', 'approved', 'rejected', 'cooling', 'completed']);
+export const voteEnum = pgEnum('vote_enum', ['approve', 'reject']);
+export const transferResourceTypeEnum = pgEnum('transfer_resource_type', ['repo', 'cloud_cred', 'billing', 'env', 'contract']);
+
 export const jobStatusEnum = pgEnum('job_status', ['open', 'bidding', 'in_progress', 'completed', 'cancelled', 'disputed']);
 export const bidStatusEnum = pgEnum('bid_status', ['pending', 'accepted', 'rejected', 'withdrawn']);
 export const projectStatusEnum = pgEnum('project_status', ['active', 'paused', 'completed', 'cancelled']);
-export const notificationTypeEnum = pgEnum('notification_type', ['message', 'bid', 'job', 'project', 'system']);
+export const notificationTypeEnum = pgEnum('notification_type', ['message', 'bid', 'job', 'project', 'system', 'unit_governance']);
 export const verificationTargetTypeEnum = pgEnum('verification_target_type', ['user', 'team']);
 export const verificationStatusEnum = pgEnum('verification_status', ['pending', 'approved', 'rejected']);
 export const attachmentRelatedTypeEnum = pgEnum('attachment_related_type', ['message', 'job', 'project', 'delivery']);
@@ -89,6 +95,8 @@ export const teams = pgTable('teams', {
   description: text('description'),
   moderationStatus: teamModerationStatusEnum('moderation_status').default('pending').notNull(),
   moderationReason: text('moderation_reason'),
+  state: unitStateEnum('state').default('active').notNull(),
+  agreementsAcceptedAt: timestamp('agreements_accepted_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -99,6 +107,60 @@ export const teamMembers = pgTable('team_members', {
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   teamRole: teamRoleEnum('team_role').notNull().default('member'),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
+});
+
+export const joinRequests = pgTable('join_requests', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  teamId: text('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  message: text('message'),
+  status: joinRequestStatusEnum('status').default('pending').notNull(),
+  termsAccepted: boolean('terms_accepted').default(false).notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const removalRequests = pgTable('removal_requests', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  teamId: text('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  targetUserId: text('target_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  initiatorUserId: text('initiator_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  status: removalRequestStatusEnum('status').default('pending').notNull(),
+  coolingEndsAt: timestamp('cooling_ends_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const removalVotes = pgTable('removal_votes', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  removalRequestId: text('removal_request_id').references(() => removalRequests.id, { onDelete: 'cascade' }).notNull(),
+  voterUserId: text('voter_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  vote: voteEnum('vote').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const ownershipTransfers = pgTable('ownership_transfers', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  teamId: text('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  removalRequestId: text('removal_request_id').references(() => removalRequests.id, { onDelete: 'cascade' }),
+  resourceType: transferResourceTypeEnum('resource_type').notNull(),
+  resourceId: text('resource_id').notNull(),
+  fromUserId: text('from_user_id').references(() => users.id).notNull(),
+  toUserId: text('to_user_id').references(() => users.id).notNull(),
+  completed: boolean('completed').default(false).notNull(),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const unitAuditLogs = pgTable('unit_audit_logs', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  teamId: text('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  actorUserId: text('actor_user_id').references(() => users.id).notNull(),
+  action: text('action').notNull(), 
+  targetUserId: text('target_user_id').references(() => users.id),
+  details: text('details'), 
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const jobs = pgTable('jobs', {
@@ -267,6 +329,27 @@ export const teamsRelations = relations(teams, ({ many }) => ({
   bids: many(bids),
   projects: many(projects),
   reviewsReceived: many(reviews, { relationName: 'reviewee_team' }),
+  joinRequests: many(joinRequests),
+  removalRequests: many(removalRequests),
+  auditLogs: many(unitAuditLogs),
+}));
+
+export const joinRequestsRelations = relations(joinRequests, ({ one }) => ({
+  team: one(teams, { fields: [joinRequests.teamId], references: [teams.id] }),
+  user: one(users, { fields: [joinRequests.userId], references: [users.id] }),
+}));
+
+export const removalRequestsRelations = relations(removalRequests, ({ one, many }) => ({
+  team: one(teams, { fields: [removalRequests.teamId], references: [teams.id] }),
+  targetUser: one(users, { fields: [removalRequests.targetUserId], references: [users.id] }),
+  initiator: one(users, { fields: [removalRequests.initiatorUserId], references: [users.id] }),
+  votes: many(removalVotes),
+  ownershipTransfers: many(ownershipTransfers),
+}));
+
+export const removalVotesRelations = relations(removalVotes, ({ one }) => ({
+  request: one(removalRequests, { fields: [removalVotes.removalRequestId], references: [removalRequests.id] }),
+  voter: one(users, { fields: [removalVotes.voterUserId], references: [users.id] }),
 }));
 
 export const jobsRelations = relations(jobs, ({ one, many }) => ({

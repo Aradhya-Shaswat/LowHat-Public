@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { Bell, Info, MessageSquare, Briefcase, FileText, CheckCheck } from "lucide-react";
 import { markNotificationReadAction, markAllNotificationsReadAction } from "@/app/actions/notifications";
 
-type NotificationType = "message" | "bid" | "job" | "project" | "system";
+type NotificationType = "message" | "bid" | "job" | "project" | "system" | "unit_governance";
 
 interface NotificationItem {
   id: string;
@@ -27,6 +27,7 @@ function renderIcon(type: NotificationType) {
     case "bid":     return <FileText className="w-4 h-4" />;
     case "job":     return <Briefcase className="w-4 h-4" />;
     case "project": return <Bell className="w-4 h-4" />;
+    case "unit_governance": return <Info className="w-4 h-4" />;
     default:        return <Info className="w-4 h-4" />;
   }
 }

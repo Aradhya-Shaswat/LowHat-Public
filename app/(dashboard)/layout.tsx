@@ -91,9 +91,9 @@ export default async function DashboardLayout({
               </details>
             ) : (
               <div className="px-3 py-3 mt-4 rounded-md bg-secondary/30 text-left flex flex-col gap-2">
-                <h4 className="text-sm font-serif text-foreground">Join a Team</h4>
-                <p className="text-[10px] text-muted-foreground leading-relaxed tracking-wider">Form a unit to bid.</p>
-                <Link href="/team" className="text-xs font-medium text-foreground hover:underline mt-1">
+                <h4 className="text-sm font-serif text-foreground">Operational Unit</h4>
+                <p className="text-[10px] text-muted-foreground leading-relaxed tracking-wider">Form a collective to execute on contracts.</p>
+                <Link href="/create-unit" className="text-xs font-medium text-foreground hover:underline mt-1">
                   Initialize Unit →
                 </Link>
               </div>

@@ -19,7 +19,8 @@ export function SidebarNav({ role }: { role: string }) {
         return [
           { href: "/", label: "Marketplace" },
           { href: "/projects", label: "Active Executions" },
-          { href: "/team", label: "My Unit (Team)" },
+          { href: "/find-units", label: "Find Units" },
+          { href: "/my-unit", label: "My Unit" },
         ];
       case "admin":
         return [
