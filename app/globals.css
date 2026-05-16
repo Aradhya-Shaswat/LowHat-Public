@@ -101,7 +101,7 @@
 
 @layer base {
   html {
-    scrollbar-gutter: stable;
+
   }
   * {
     @apply border-border outline-ring/30;
@@ -126,27 +126,28 @@
     @apply leading-relaxed;
   }
 
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: var(--muted-foreground) transparent;
-  }
 
-  *::-webkit-scrollbar {
+  ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
   }
 
-  *::-webkit-scrollbar-track {
+  ::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  *::-webkit-scrollbar-thumb {
-    background: var(--muted-foreground);
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.85 0.01 250);
     border-radius: 10px;
   }
 
-  *::-webkit-scrollbar-thumb:hover {
-    background: var(--foreground);
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.7 0.01 250);
+  }
+  
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.8 0.01 250) transparent;
   }
 }
 

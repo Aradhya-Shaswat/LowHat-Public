@@ -1,7 +1,6 @@
 "use client";
 
-import { Timer, Download, Upload, ShieldAlert, CheckCircle2 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { useState, useEffect } from "react";
 
 interface UnitOffboardingZoneProps {
   request: {
@@ -12,70 +11,79 @@ interface UnitOffboardingZoneProps {
 }
 
 export function UnitOffboardingZone({ request, unitId }: UnitOffboardingZoneProps) {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  function getRemainingTime(endTime: Date | null) {
+    if (!endTime) return "00:00:00";
+    const diff = new Date(endTime).getTime() - now.getTime();
+    if (diff <= 0) return "00:00:00";
+    
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+
   return (
-    <div className="p-8 rounded-3xl bg-amber-500/[0.03] border-2 border-amber-500/20 shadow-lg space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+    <div className="pb-12 border-b border-border/50 space-y-10 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
         <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-              <ShieldAlert className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-serif text-foreground">Isolated Offboarding Zone</h2>
-              <p className="text-xs text-amber-700/70 font-medium uppercase tracking-widest">Cooling Period Active</p>
-            </div>
+          <div className="space-y-1">
+            <h2 className="text-3xl font-serif text-foreground tracking-tight">Isolated Offboarding Zone</h2>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Operational Cooling Period Active</p>
           </div>
           <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-            Your membership is being phased out. You have 24 hours of isolated access to complete knowledge transfer, export your files, and finalize handover deliverables.
+            Your membership is being phased out. You have isolated access to complete knowledge transfer, export your files, and finalize handover deliverables.
           </p>
         </div>
 
-        <div className="bg-background border border-amber-500/30 rounded-2xl p-4 min-w-[200px] shadow-sm">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Time Remaining</p>
-          <div className="flex items-center gap-3">
-            <Timer className="h-5 w-5 text-amber-600 animate-pulse" />
-            <span className="text-2xl font-mono font-bold text-foreground tracking-tight">14:21:05</span>
+        <div className="min-w-[200px] md:text-right">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Time Remaining</p>
+          <div className="flex items-baseline gap-1 md:justify-end">
+            <span className="text-4xl font-mono font-bold text-foreground tabular-nums tracking-tighter">
+              {getRemainingTime(request.coolingEndsAt)}
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-2xl bg-background border border-border/50 space-y-4">
-          <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Handover Assets</h4>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-foreground/[0.02] border border-border/30">
-              <span className="text-xs font-medium">Technical Docs</span>
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="flex flex-col space-y-4">
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground pb-2 border-b border-border/50">Handover Assets</h4>
+          <div className="space-y-3 px-0.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-foreground/80">Technical Docs</span>
+              <span className="text-[10px] font-bold text-emerald-600 uppercase">Complete</span>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-foreground/[0.02] border border-border/30">
-              <span className="text-xs font-medium">Access Keys</span>
-              <div className="h-2 w-2 rounded-full bg-amber-500" />
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-foreground/80">Access Keys</span>
+              <span className="text-[10px] font-bold text-amber-600 uppercase">Pending</span>
             </div>
           </div>
         </div>
 
-        <div className="p-6 rounded-2xl bg-background border border-border/50 space-y-4">
-          <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Isolated Uploads</h4>
-          <button className="w-full h-24 border-2 border-dashed border-border/50 rounded-xl flex flex-col items-center justify-center gap-2 hover:bg-foreground/[0.01] transition-all">
-            <Upload className="h-5 w-5 text-muted-foreground" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Drop Transfer Files</span>
+        <div className="flex flex-col space-y-4">
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground pb-2 border-b border-border/50">Isolated Uploads</h4>
+          <button className="w-full h-24 border border-dashed border-border flex flex-col items-center justify-center gap-1.5 hover:bg-foreground/[0.02] transition-all group">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-foreground group-hover:underline decoration-1 underline-offset-4">Drop Transfer Files</span>
+            <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Maximum 500MB per file</span>
           </button>
         </div>
 
-        <div className="p-6 rounded-2xl bg-background border border-border/50 space-y-4">
-          <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Resource Export</h4>
-          <button className="w-full py-3 bg-foreground text-background rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-foreground/90 transition-all">
-            <Download className="h-4 w-4" />
-            Export My Data
+        <div className="flex flex-col space-y-4">
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground pb-2 border-b border-border/50">Resource Export</h4>
+          <button className="w-full h-24 bg-foreground text-background text-[11px] font-bold uppercase tracking-wider hover:bg-foreground/90 transition-all">
+            Export Final Data Package
           </button>
         </div>
-      </div>
-
-      <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
-        <p className="text-[11px] text-amber-800/80 leading-relaxed italic text-center">
-          "Professional execution units prioritize clean operational closure. Ensure all critical ownership transfers are initiated before the cooling period expires."
-        </p>
       </div>
     </div>
   );
 }
+
