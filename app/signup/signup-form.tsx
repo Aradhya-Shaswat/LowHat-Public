@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { authClient } from "@/lib/auth";
 import { useRouter } from "next/navigation";
+import { validateProfanity } from "@/lib/profanity";
 
 const ERROR_MAP: Record<string, string> = {
   "user already exists": "An account with this email already exists.",
@@ -37,6 +38,13 @@ export default function SignupForm() {
     const password = formData.get("password") as string;
     const intent = formData.get("intent") as "client" | "freelancer" | "admin";
     const fullName = `${firstName} ${lastName}`;
+
+    const profanityError = validateProfanity(firstName, "first name") || validateProfanity(lastName, "last name");
+    if (profanityError) {
+      setError(profanityError);
+      setIsPending(false);
+      return;
+    }
 
     try {
       const { data, error: signUpError } = await authClient.signUp.email({

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { teams, teamMembers, bids, reviews, users, freelancerProfiles } from "@/lib/db/schema";
+import { teams, teamMembers, bids, reviews, users, freelancerProfiles, clientProfiles } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 
 export async function getUnitHoverInfo(identifier: string) {
@@ -90,11 +90,24 @@ export async function getFreelancerHoverInfo(identifier: string) {
       return null;
     }
     
-    const [profile] = await db
-      .select()
-      .from(freelancerProfiles)
-      .where(eq(freelancerProfiles.userId, user.id))
-      .limit(1);
+    let freelancerProfile = null;
+    let clientProfile = null;
+
+    if (user.role === 'client') {
+      const [cp] = await db
+        .select()
+        .from(clientProfiles)
+        .where(eq(clientProfiles.userId, user.id))
+        .limit(1);
+      clientProfile = cp;
+    } else {
+      const [fp] = await db
+        .select()
+        .from(freelancerProfiles)
+        .where(eq(freelancerProfiles.userId, user.id))
+        .limit(1);
+      freelancerProfile = fp;
+    }
       
     const tm = await db
       .select({ teamName: teams.name, teamId: teams.id })
@@ -120,14 +133,17 @@ export async function getFreelancerHoverInfo(identifier: string) {
       id: user.id,
       name: user.name,
       email: user.email,
-      title: profile?.title || "Independent Professional",
-      bio: profile?.bio || "No bio provided.",
-      hourlyRate: profile?.hourlyRate ? profile.hourlyRate / 100 : null,
+      role: user.role || "freelancer",
+      title: user.role === 'client' ? (clientProfile?.companyName || "Client") : (freelancerProfile?.title || "Independent Professional"),
+      bio: freelancerProfile?.bio || null,
+      hourlyRate: freelancerProfile?.hourlyRate ? freelancerProfile.hourlyRate / 100 : null,
       createdAt: user.createdAt.toISOString(),
       unitName: unit?.teamName || null,
       unitId: unit?.teamId || null,
       reputation: `${avgRating}/5.0`,
-      reviewsCount
+      reviewsCount,
+      companyName: clientProfile?.companyName || null,
+      industry: clientProfile?.industry || null
     };
   } catch (error) {
     console.error("Error in getFreelancerHoverInfo:", error);

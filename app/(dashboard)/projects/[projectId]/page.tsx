@@ -32,7 +32,6 @@ export default async function ProjectWorkspacePage({ params }: { params: Promise
   let receiptsMap = new Map<string, string[]>();
 
   if (thread) {
-    // 1. Mark unread messages in this thread as read for current user
     const unreadMessages = await db
       .select({ id: messages.id })
       .from(messages)
@@ -60,7 +59,6 @@ export default async function ProjectWorkspacePage({ params }: { params: Promise
       );
     }
 
-    // 2. Fetch all messages
     const data = await db.select({
       message: messages,
       sender: users,
@@ -73,7 +71,6 @@ export default async function ProjectWorkspacePage({ params }: { params: Promise
     .orderBy(asc(messages.createdAt));
     threadMessages = data;
 
-    // 3. Fetch read receipts for these messages in a single query
     if (data.length > 0) {
       const readReceiptsData = await db
         .select({

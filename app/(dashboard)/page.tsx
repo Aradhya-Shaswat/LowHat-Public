@@ -77,28 +77,47 @@ export default async function ExecutionBoardPage() {
               ) : openJobs.map((entry) => {
                 const jobBids = bidsData.filter((b) => b.jobId === entry.job.id);
                 return (
-                  <Link key={entry.job.id} href={`/jobs/${entry.job.id}`} className="block group py-6 border-b border-border/60 hover:border-foreground/40 transition-colors">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="space-y-1">
-                      <span className="text-xs font-medium text-muted-foreground font-sans block mb-1">
-                        {entry.job.status.charAt(0).toUpperCase() + entry.job.status.slice(1)}
-                      </span>
-                      <h3 className="text-2xl font-serif text-foreground group-hover:text-foreground/80 transition-colors">{entry.job.title}</h3>
-                    </div>
-                      <div className="text-right pt-1">
-                        <span className="text-sm font-medium text-foreground font-sans tracking-tight">
+                  <Link key={entry.job.id} href={`/jobs/${entry.job.id}`} className="group py-8 border-b border-border/50 hover:border-foreground/40 transition-all cursor-pointer relative block">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="space-y-1.5 flex-1 pr-12">
+                        <div className="flex items-center gap-4 mb-3">
+                          <span className={`text-[10px] font-bold tracking-tight capitalize ${entry.job.status === "open" ? "text-emerald-600" : "text-muted-foreground"}`}>
+                            {entry.job.status.replace("_", " ")}
+                          </span>
+                          <span className="text-[10px] font-medium text-muted-foreground">
+                            {entry.clientProfile?.companyName || entry.client?.name}
+                          </span>
+                        </div>
+                        <h3 className="text-2xl font-serif text-foreground group-hover:text-foreground/80 transition-colors leading-tight">{entry.job.title}</h3>
+                      </div>
+                      <div className="text-right flex flex-col items-end gap-1">
+                        <span className="text-sm font-medium text-foreground tracking-tight">
                           ${(entry.job.budgetMin! / 100).toLocaleString()} – ${(entry.job.budgetMax! / 100).toLocaleString()}
+                        </span>
+                        <span className="text-[10px] font-bold text-muted-foreground">
+                          {jobBids.length} Bids
                         </span>
                       </div>
                     </div>
-                    <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed font-sans max-w-3xl">
+                    <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed max-w-3xl mb-0">
                       {entry.job.description}
                     </p>
-                    <div className="flex items-center justify-between mt-6">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground font-sans">{entry.clientProfile?.companyName || entry.client?.name}</span>
-                      </div>
-                      <span className="text-sm font-medium text-foreground font-sans">{jobBids.length} bids</span>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {entry.job.workCategory && (
+                        <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-secondary/50 text-foreground/70 rounded-sm">
+                          {entry.job.workCategory}
+                        </span>
+                      )}
+                      {entry.job.experienceLevel && (
+                        <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-secondary/50 text-foreground/70 rounded-sm">
+                          {entry.job.experienceLevel}
+                        </span>
+                      )}
+                      {entry.job.timeAllowed && (
+                        <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-secondary/50 text-foreground/70 rounded-sm">
+                          {entry.job.timeAllowed}
+                        </span>
+                      )}
                     </div>
                   </Link>
                 );

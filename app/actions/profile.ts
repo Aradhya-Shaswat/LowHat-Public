@@ -6,6 +6,7 @@ import { verifySession } from "@/lib/session";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sendNotification } from "@/lib/notifications";
+import { validateProfanity } from "@/lib/profanity";
 
 export type ProfileActionResult = {
   success: boolean;
@@ -20,10 +21,14 @@ export async function updateProfileAction(
   if (!session?.isAuth) {
     return { success: false, message: "Not authenticated." };
   }
-
   const firstName = formData.get("firstName") as string;
   const lastName = formData.get("lastName") as string;
   const fullName = `${firstName} ${lastName}`.trim();
+
+  const nameProfanity = validateProfanity(firstName, "first name") || validateProfanity(lastName, "last name");
+  if (nameProfanity) {
+    return { success: false, message: nameProfanity };
+  }
 
   try {
     // console.log("[updateProfileAction] session:", session);
@@ -40,6 +45,11 @@ export async function updateProfileAction(
       const hourlyRate = parseInt(formData.get("hourlyRate") as string, 10);
       const bio = formData.get("bio") as string;
 
+      const freelancerProfanity = validateProfanity(title, "title") || validateProfanity(bio, "bio");
+      if (freelancerProfanity) {
+        return { success: false, message: freelancerProfanity };
+      }
+
       await db.update(freelancerProfiles)
         .set({
           title,
@@ -50,6 +60,11 @@ export async function updateProfileAction(
     } else if (session!.role === "client") {
       const companyName = formData.get("companyName") as string;
       const industry = formData.get("industry") as string;
+
+      const clientProfanity = validateProfanity(companyName, "company name") || validateProfanity(industry, "industry");
+      if (clientProfanity) {
+        return { success: false, message: clientProfanity };
+      }
 
       await db.update(clientProfiles)
         .set({

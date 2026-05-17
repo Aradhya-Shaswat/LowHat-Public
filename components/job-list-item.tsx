@@ -52,6 +52,23 @@ export function JobListItem({ job, bidsCount }: JobListItemProps) {
       <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed max-w-3xl mb-0">
         {job.description}
       </p>
+      <div className="flex flex-wrap gap-2 mt-3">
+        {job.workCategory && (
+          <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-secondary/50 text-foreground/70 rounded-sm">
+            {job.workCategory}
+          </span>
+        )}
+        {job.experienceLevel && (
+          <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-secondary/50 text-foreground/70 rounded-sm">
+            {job.experienceLevel}
+          </span>
+        )}
+        {job.timeAllowed && (
+          <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-secondary/50 text-foreground/70 rounded-sm">
+            {job.timeAllowed}
+          </span>
+        )}
+      </div>
     </Link>
   );
 }

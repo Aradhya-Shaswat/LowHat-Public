@@ -19,6 +19,7 @@ import { eq, and, or, sql, count, desc, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sendNotification } from "@/lib/notifications";
 import { users as usersTable } from "@/lib/db/schema";
+import { validateProfanity } from "@/lib/profanity";
 
 export type UnitActionResult = {
   success: boolean;
@@ -81,6 +82,9 @@ export async function createUnitAction(formData: FormData) {
 
   if (!name) throw new Error("Unit name is required.");
 
+  const profanityError = validateProfanity(name, "unit name") || validateProfanity(description, "description");
+  if (profanityError) throw new Error(profanityError);
+
   try {
     const [newTeam] = await db.insert(teams)
       .values({ 
@@ -128,7 +132,8 @@ export async function submitJoinRequestAction(formData: FormData) {
   if (!teamId) return { success: false, message: "Unit ID is required." };
   if (!termsAccepted) return { success: false, message: "You must accept the Unit Agreements." };
 
-  
+  const profanityError = validateProfanity(message, "message");
+  if (profanityError) return { success: false, message: profanityError };
   const existingMembership = await db
     .select()
     .from(teamMembers)
@@ -674,7 +679,8 @@ export async function updateUnitAction(
 
   if (!teamId || !name) return { success: false, message: "Unit name is required." };
 
-  
+  const profanityError = validateProfanity(name, "unit name") || validateProfanity(description, "description");
+  if (profanityError) return { success: false, message: profanityError };
   const [membership] = await db
     .select()
     .from(teamMembers)

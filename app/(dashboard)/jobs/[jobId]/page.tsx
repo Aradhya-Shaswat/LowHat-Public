@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { jobs, users, clientProfiles } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { jobs, users, clientProfiles, teamMembers, bids } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 import { verifySession } from "@/lib/session";
 import ClientJobView from "./client-job-view";
 
@@ -42,12 +42,42 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   .where(eq(users.id, job.clientId))
   .limit(1);
 
+  let teamMembersList: { id: string; name: string }[] = [];
+  let hasBidded = false;
+  if (role === "freelancer" && session?.userId) {
+    const [tm] = await db.select({ teamId: teamMembers.teamId })
+      .from(teamMembers)
+      .where(eq(teamMembers.userId, session.userId))
+      .limit(1);
+      
+    if (tm) {
+      const members = await db.select({
+        id: users.id,
+        name: users.name,
+      })
+      .from(teamMembers)
+      .leftJoin(users, eq(teamMembers.userId, users.id))
+      .where(eq(teamMembers.teamId, tm.teamId));
+      
+      teamMembersList = members.map(m => ({ id: m.id || "Unknown", name: m.name || "Unknown" }));
+
+      const [existingBid] = await db.select({ id: bids.id })
+        .from(bids)
+        .where(and(eq(bids.jobId, jobId), eq(bids.teamId, tm.teamId)))
+        .limit(1);
+        
+      hasBidded = !!existingBid;
+    }
+  }
+
   return (
     <ClientJobView
       job={job}
       jobId={jobId}
       role={role}
       clientName={client?.profile?.companyName || client?.user?.name || "Unknown"}
+      teamMembers={teamMembersList}
+      hasBidded={hasBidded}
     />
   );
 }

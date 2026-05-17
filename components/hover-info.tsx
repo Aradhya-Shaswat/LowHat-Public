@@ -237,22 +237,45 @@ export function HoverInfo({ children, identifier, type, className }: HoverInfoPr
                 </div>
 
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-2 border-t border-border/40">
-                  <div>
-                    <span className="text-[9px] font-medium tracking-widest text-muted-foreground uppercase font-sans block">
-                      Hourly Rate
-                    </span>
-                    <span className="text-sm font-semibold text-foreground font-sans">
-                      {data.hourlyRate ? `$${data.hourlyRate.toFixed(2)}/hr` : "No rate set"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-medium tracking-widest text-muted-foreground uppercase font-sans block">
-                      Unit Collective
-                    </span>
-                    <span className="text-sm font-semibold text-foreground font-sans truncate block max-w-full">
-                      {data.unitName || "Independent"}
-                    </span>
-                  </div>
+                  {data.role === "client" ? (
+                    <>
+                      <div>
+                        <span className="text-[9px] font-medium tracking-widest text-muted-foreground uppercase font-sans block">
+                          Company Name
+                        </span>
+                        <span className="text-sm font-semibold text-foreground font-sans truncate block max-w-full">
+                          {data.companyName || "Not specified"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-medium tracking-widest text-muted-foreground uppercase font-sans block">
+                          Industry
+                        </span>
+                        <span className="text-sm font-semibold text-foreground font-sans truncate block max-w-full">
+                          {data.industry || "Not specified"}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="text-[9px] font-medium tracking-widest text-muted-foreground uppercase font-sans block">
+                          Hourly Rate
+                        </span>
+                        <span className="text-sm font-semibold text-foreground font-sans">
+                          {data.hourlyRate ? `$${data.hourlyRate.toFixed(2)}/hr` : "No rate set"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-medium tracking-widest text-muted-foreground uppercase font-sans block">
+                          Unit Collective
+                        </span>
+                        <span className="text-sm font-semibold text-foreground font-sans truncate block max-w-full">
+                          {data.unitName || "Independent"}
+                        </span>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <span className="text-[9px] font-medium tracking-widest text-muted-foreground uppercase font-sans block">
                       Reputation

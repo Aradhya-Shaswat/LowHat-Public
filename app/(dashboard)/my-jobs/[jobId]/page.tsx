@@ -81,6 +81,33 @@ export default async function JobDetailView({ params }: { params: Promise<{ jobI
         <p className="text-muted-foreground text-sm max-w-3xl leading-relaxed">
           {job.description}
         </p>
+
+        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-6 border-t border-border pt-6 max-w-3xl">
+          {job.workCategory && (
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Category</span>
+              <span className="text-sm text-foreground">{job.workCategory}</span>
+            </div>
+          )}
+          {job.experienceLevel && (
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Experience</span>
+              <span className="text-sm text-foreground">{job.experienceLevel}</span>
+            </div>
+          )}
+          {job.timeAllowed && (
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Timeline</span>
+              <span className="text-sm text-foreground">{job.timeAllowed}</span>
+            </div>
+          )}
+          {job.requiredSkills && (
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Skills</span>
+              <span className="text-sm text-foreground">{job.requiredSkills}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -108,7 +135,15 @@ export default async function JobDetailView({ params }: { params: Promise<{ jobI
                         </span>
                       )}
                     </h3>
-                    <p className="text-sm text-muted-foreground mt-1">Bid Amount: <span className="font-medium text-foreground">${(entry.bid.amount / 100).toLocaleString()}</span></p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Bid Amount: <span className="font-medium text-foreground">${(entry.bid.amount / 100).toLocaleString()}</span>
+                      {entry.bid.estimatedDelivery && (
+                        <>
+                          <span className="mx-2 text-border">|</span>
+                          Timeline: <span className="font-medium text-foreground">{entry.bid.estimatedDelivery}</span>
+                        </>
+                      )}
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     {entry.bid.status === "accepted" ? (
@@ -131,6 +166,28 @@ export default async function JobDetailView({ params }: { params: Promise<{ jobI
                   <p className="text-sm text-foreground leading-relaxed">
                     {entry.bid.proposal}
                   </p>
+                  
+                  {entry.bid.taskAssignments && (() => {
+                    try {
+                      const assignments = JSON.parse(entry.bid.taskAssignments);
+                      if (assignments.length === 0) return null;
+                      return (
+                        <div className="mt-4 pt-4 border-t border-border/50">
+                          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Team Assignments</h4>
+                          <div className="space-y-2">
+                            {assignments.map((a: any, i: number) => (
+                              <div key={i} className="flex justify-between text-sm">
+                                <span className="text-foreground font-medium">{a.task}</span>
+                                <span className="text-muted-foreground">{a.memberName || "Unknown"}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    } catch (e) {
+                      return null;
+                    }
+                  })()}
                 </div>
               </div>
             ))}

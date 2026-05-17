@@ -94,6 +94,37 @@ export function ModerationCard({ type, data, client, action }: ModerationCardPro
             </div>
           </section>
 
+          {type === "job" && (
+            <section className="pt-6 border-t border-border/30 text-center max-w-2xl mx-auto">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                {data.workCategory && (
+                  <div>
+                    <span className="text-[10px] font-bold text-muted-foreground block mb-1">Category</span>
+                    <span className="text-xs font-medium text-foreground">{data.workCategory}</span>
+                  </div>
+                )}
+                {data.experienceLevel && (
+                  <div>
+                    <span className="text-[10px] font-bold text-muted-foreground block mb-1">Experience</span>
+                    <span className="text-xs font-medium text-foreground">{data.experienceLevel}</span>
+                  </div>
+                )}
+                {data.timeAllowed && (
+                  <div>
+                    <span className="text-[10px] font-bold text-muted-foreground block mb-1">Timeline</span>
+                    <span className="text-xs font-medium text-foreground">{data.timeAllowed}</span>
+                  </div>
+                )}
+                {data.requiredSkills && (
+                  <div>
+                    <span className="text-[10px] font-bold text-muted-foreground block mb-1">Skills</span>
+                    <span className="text-xs font-medium text-foreground">{data.requiredSkills}</span>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
           <section className="pt-12 border-t border-border/50 text-center">
             <h4 className="text-[10px] font-bold text-muted-foreground mb-8">Executive Action</h4>
             

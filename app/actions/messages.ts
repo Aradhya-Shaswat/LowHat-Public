@@ -5,6 +5,7 @@ import { messages, meetings, users, messageReads } from "@/lib/db/schema";
 import { verifySession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import { eq, asc, inArray, and, isNull, not } from "drizzle-orm";
+import { cleanProfanity } from "@/lib/profanity";
 
 export async function getThreadMessagesAction(threadId: string, currentUserId: string) {
   const session = await verifySession();
@@ -144,11 +145,13 @@ export async function sendMessageAction(formData: FormData) {
     return;
   }
 
+  const cleanedContent = cleanProfanity(content);
+
   try {
     await db.insert(messages).values({
       threadId,
       senderId: session.userId,
-      content,
+      content: cleanedContent,
     });
   } catch (err) {}
 
