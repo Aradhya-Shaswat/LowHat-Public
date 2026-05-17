@@ -35,6 +35,9 @@ export const verifySession = cache(async () => {
 
       break;
     } catch (e: any) {
+      if (e.digest === 'DYNAMIC_SERVER_USAGE' || e.message?.includes('Dynamic server usage')) {
+        throw e;
+      }
       if (attempt < 2) {
         await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
         continue;

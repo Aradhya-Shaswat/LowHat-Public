@@ -5,6 +5,8 @@ import { teams, teamMembers, notifications, users } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { CollapsibleDashboardLayout } from "@/components/collapsible-dashboard-layout";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {
