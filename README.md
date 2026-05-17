@@ -2,6 +2,8 @@
 
 LowHat is an execution marketplace where clients and freelancers collaborate on projects with transparent governance and real-time communication.
 
+[![LowHat v1](https://markdown-videos-api.jorgenkh.no/url?url=https%3A%2F%2Fyoutu.be%2FGQTyr2Lnqf8)](https://youtu.be/GQTyr2Lnqf8)
+
 ## development notes
 
 - **ai scaffolding**: the initial project structure and components were scaffolded using ai tools.
