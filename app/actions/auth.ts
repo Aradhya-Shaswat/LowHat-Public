@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { clientProfiles, freelancerProfiles, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { sendNotification } from "@/lib/notifications";
 
 export async function initProfileAction(userId: string, intent: "client" | "freelancer" | "admin", email: string, name: string) {
   try {
@@ -41,6 +42,13 @@ export async function initProfileAction(userId: string, intent: "client" | "free
         await db.insert(freelancerProfiles).values({ userId: effectiveId });
       }
     }
+
+    await sendNotification({
+      userId: effectiveId,
+      type: "system",
+      title: "Welcome to LowHat",
+      content: `Your profile has been initialized as a ${intent}. Welcome aboard!`,
+    });
 
     return { success: true };
   } catch (err: any) {

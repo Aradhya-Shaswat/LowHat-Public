@@ -47,8 +47,8 @@ export function JoinUnitModal({ unitId, unitName }: JoinUnitModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <button className="w-full py-2 border border-border rounded-lg text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-all">
-          Request to Join
+        <button className="text-xs font-semibold text-foreground hover:opacity-80 transition-opacity font-sans">
+          Request to join →
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-background border-border">
@@ -59,13 +59,13 @@ export function JoinUnitModal({ unitId, unitName }: JoinUnitModalProps) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Intro & Expertise</label>
+          <div className="space-y-4">
+            <label className="text-xs font-semibold text-foreground font-sans px-1">Intro & Expertise</label>
             <textarea 
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Why do you want to join? What do you bring to the unit?" 
-              className="w-full px-4 py-3 bg-foreground/[0.02] border border-border/50 rounded-xl text-sm outline-none focus:border-foreground/20 focus:bg-foreground/[0.04] h-24 resize-none transition-all"
+              className="w-full bg-transparent border-b border-border/50 py-2 text-sm outline-none focus:border-foreground transition-all h-32 resize-none font-sans"
             />
           </div>
           
@@ -82,13 +82,13 @@ export function JoinUnitModal({ unitId, unitName }: JoinUnitModalProps) {
             </label>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="pt-4">
             <button 
               type="submit" 
               disabled={isPending || !accepted}
-              className="w-full bg-foreground text-background hover:bg-foreground/90 h-10 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+              className="w-full py-4 bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50 font-sans"
             >
-              {isPending ? "Submitting..." : "Submit Join Request"}
+              {isPending ? "Submitting..." : "Submit join request"}
             </button>
           </DialogFooter>
         </form>

@@ -2,6 +2,7 @@
 
 import { Check, HelpCircle, Pencil } from "lucide-react";
 import { useState } from "react";
+import { HoverInfo } from "./hover-info";
 import { TeamEditForm } from "./team-edit-form";
 import {
   Dialog,
@@ -31,7 +32,11 @@ export function UnitHeader({ unit, userRole }: UnitHeaderProps) {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-serif text-foreground">{unit.name}</h1>
+            <h1 className="text-4xl font-serif text-foreground">
+              <HoverInfo identifier={unit.id} type="unit">
+                {unit.name}
+              </HoverInfo>
+            </h1>
             
             {canEdit && (
               <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -65,8 +70,8 @@ export function UnitHeader({ unit, userRole }: UnitHeaderProps) {
                 <HelpCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
               </span>
             )}
-            <span className="text-[10px] font-bold px-2 py-0.5 bg-foreground/5 rounded text-muted-foreground uppercase tracking-widest border border-border/50">
-              {unit.state}
+            <span className="text-[10px] font-medium px-1.5 py-0.5 text-muted-foreground uppercase tracking-widest border border-border/30 font-sans">
+              {unit.state.charAt(0).toUpperCase() + unit.state.slice(1)}
             </span>
           </div>
           <p className="text-muted-foreground text-sm max-w-2xl leading-relaxed">
@@ -75,16 +80,16 @@ export function UnitHeader({ unit, userRole }: UnitHeaderProps) {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">My Role</p>
-            <p className="text-sm font-medium text-foreground flex items-center gap-1.5 justify-end">
+          <div className="text-right space-y-1">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest font-sans">My role</p>
+            <p className="text-xl font-semibold text-foreground font-sans">
               {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
             </p>
           </div>
           <div className="h-10 w-[1px] bg-border/50" />
-          <div className="text-right">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Reputation</p>
-            <p className="text-sm font-medium text-foreground">5.0 / 5.0</p>
+          <div className="text-right space-y-1">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest font-sans">Reputation</p>
+            <p className="text-xl font-semibold text-foreground font-sans">5.0 / 5.0</p>
           </div>
         </div>
       </div>

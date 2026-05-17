@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-export function SidebarNav({ role }: { role: string }) {
+export function SidebarNav({ role, hasUnit }: { role: string; hasUnit?: boolean }) {
   const pathname = usePathname();
 
   const getLinks = () => {
@@ -16,12 +16,15 @@ export function SidebarNav({ role }: { role: string }) {
           { href: "/projects", label: "Active Projects" },
         ];
       case "freelancer":
-        return [
+        const freelancerLinks = [
           { href: "/", label: "Marketplace" },
           { href: "/projects", label: "Active Executions" },
           { href: "/find-units", label: "Find Units" },
-          { href: "/my-unit", label: "My Unit" },
         ];
+        if (hasUnit) {
+          freelancerLinks.push({ href: "/my-unit", label: "My Unit" });
+        }
+        return freelancerLinks;
       case "admin":
         return [
           { href: "/", label: "Global Job Feed" },

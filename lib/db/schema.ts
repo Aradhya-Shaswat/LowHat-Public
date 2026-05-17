@@ -228,12 +228,21 @@ export const messageThreadParticipants = pgTable('message_thread_participants', 
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 });
 
+export const meetings = pgTable('meetings', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  threadId: text('thread_id').references(() => messageThreads.id, { onDelete: 'cascade' }).notNull(),
+  initiatorId: text('initiator_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  url: text('url').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const messages = pgTable('messages', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   threadId: text('thread_id').references(() => messageThreads.id, { onDelete: 'cascade' }).notNull(),
   senderId: text('sender_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   content: text('content').notNull(),
   isSystem: boolean('is_system').default(false).notNull(),
+  meetingId: text('meeting_id').references(() => meetings.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -374,11 +383,19 @@ export const messageThreadsRelations = relations(messageThreads, ({ one, many })
   job: one(jobs, { fields: [messageThreads.jobId], references: [jobs.id] }),
   participants: many(messageThreadParticipants),
   messages: many(messages),
+  meetings: many(meetings),
+}));
+
+export const meetingsRelations = relations(meetings, ({ one, many }) => ({
+  thread: one(messageThreads, { fields: [meetings.threadId], references: [messageThreads.id] }),
+  initiator: one(users, { fields: [meetings.initiatorId], references: [users.id] }),
+  messages: many(messages),
 }));
 
 export const messagesRelations = relations(messages, ({ one, many }) => ({
   thread: one(messageThreads, { fields: [messages.threadId], references: [messageThreads.id] }),
   sender: one(users, { fields: [messages.senderId], references: [users.id] }),
+  meeting: one(meetings, { fields: [messages.meetingId], references: [meetings.id] }),
   reads: many(messageReads),
 }));
 

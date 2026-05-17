@@ -5,6 +5,7 @@ import { users, freelancerProfiles, clientProfiles } from "@/lib/db/schema";
 import { verifySession } from "@/lib/session";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { sendNotification } from "@/lib/notifications";
 
 export type ProfileActionResult = {
   success: boolean;
@@ -25,14 +26,14 @@ export async function updateProfileAction(
   const fullName = `${firstName} ${lastName}`.trim();
 
   try {
-    console.log("[updateProfileAction] session:", session);
-    console.log("[updateProfileAction] fullName:", fullName);
+    // console.log("[updateProfileAction] session:", session);
+    // console.log("[updateProfileAction] fullName:", fullName);
 
     await db.update(users)
       .set({ name: fullName })
       .where(eq(users.id, session!.userId));
 
-    console.log("[updateProfileAction] updated users table");
+    // console.log("[updateProfileAction] updated users table");
 
     if (session!.role === "freelancer") {
       const title = formData.get("title") as string;
@@ -57,7 +58,15 @@ export async function updateProfileAction(
         })
         .where(eq(clientProfiles.userId, session!.userId));
     }
-    console.log("[updateProfileAction] SUCCESS");
+
+    await sendNotification({
+      userId: session!.userId,
+      type: "system",
+      title: "Profile Updated",
+      content: "Your profile information has been successfully updated.",
+    });
+
+    // console.log("[updateProfileAction] SUCCESS");
   } catch (err: any) {
     console.error("[updateProfileAction] Error:", err.message || err);
     return { success: false, message: "Failed to save changes. Please try again." };

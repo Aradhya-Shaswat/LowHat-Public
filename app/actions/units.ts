@@ -17,6 +17,8 @@ import {
 import { verifySession } from "@/lib/session";
 import { eq, and, or, sql, count, desc, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { sendNotification } from "@/lib/notifications";
+import { users as usersTable } from "@/lib/db/schema";
 
 export type UnitActionResult = {
   success: boolean;
@@ -98,6 +100,13 @@ export async function createUnitAction(formData: FormData) {
 
     await logAudit(newTeam.id, session.userId, 'unit_created', { name });
 
+    await sendNotification({
+      userId: session.userId,
+      type: "system",
+      title: "Unit Created",
+      content: `Your execution unit "${name}" has been successfully initialized.`,
+    });
+
     revalidatePath("/my-unit");
     return { success: true, message: "Unit initialized successfully." };
   } catch (err: any) {
@@ -145,6 +154,25 @@ export async function submitJoinRequestAction(formData: FormData) {
     return { success: false, message: "You already have a pending request for this unit." };
   }
 
+  const rejectedRequest = await db
+    .select()
+    .from(joinRequests)
+    .where(and(
+      eq(joinRequests.userId, session.userId),
+      eq(joinRequests.teamId, teamId),
+      eq(joinRequests.status, 'rejected')
+    ))
+    .orderBy(desc(joinRequests.updatedAt))
+    .limit(1);
+
+  if (rejectedRequest.length > 0) {
+    const diff = (Date.now() - new Date(rejectedRequest[0].updatedAt!).getTime()) / (1000 * 60 * 60 * 24);
+    if (diff < 14) {
+      const daysLeft = Math.ceil(14 - diff);
+      return { success: false, message: `Your request was recently declined. You can re-apply in ${daysLeft} days.` };
+    }
+  }
+
   try {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 14); 
@@ -158,6 +186,25 @@ export async function submitJoinRequestAction(formData: FormData) {
     });
 
     await logAudit(teamId, session.userId, 'join_requested');
+
+    const staff = await db.select({ userId: teamMembers.userId })
+      .from(teamMembers)
+      .where(and(
+        eq(teamMembers.teamId, teamId),
+        or(eq(teamMembers.teamRole, 'owner'), eq(teamMembers.teamRole, 'manager'))
+      ));
+
+    const [applicant] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, session.userId)).limit(1);
+
+    for (const s of staff) {
+      await sendNotification({
+        userId: s.userId,
+        type: 'unit_governance',
+        title: "New Join Request",
+        content: `${applicant?.name || "A freelancer"} has requested to join your unit.`,
+        actionUrl: "/my-unit",
+      });
+    }
 
     revalidatePath("/find-units");
     return { success: true, message: "Request submitted. Awaiting approval." };
@@ -206,7 +253,7 @@ export async function approveJoinRequestAction(requestId: string) {
 
     await logAudit(request.teamId, session.userId, 'join_approved', {}, request.userId);
     
-    await db.insert(notifications).values({
+    await sendNotification({
       userId: request.userId,
       type: 'unit_governance',
       title: "Join Request Approved",
@@ -218,6 +265,53 @@ export async function approveJoinRequestAction(requestId: string) {
     return { success: true, message: "Member approved." };
   } catch (err: any) {
     return { success: false, message: "Failed to approve member." };
+  }
+}
+
+export async function rejectJoinRequestAction(requestId: string) {
+  const session = await verifySession();
+  if (!session?.isAuth) return { success: false, message: "Unauthorized" };
+
+  const [request] = await db
+    .select()
+    .from(joinRequests)
+    .where(eq(joinRequests.id, requestId))
+    .limit(1);
+
+  if (!request || request.status !== 'pending') return { success: false, message: "Invalid request." };
+
+  const [membership] = await db
+    .select()
+    .from(teamMembers)
+    .where(and(
+      eq(teamMembers.teamId, request.teamId),
+      eq(teamMembers.userId, session.userId)
+    ))
+    .limit(1);
+
+  if (!membership || (membership.teamRole !== 'owner' && membership.teamRole !== 'manager')) {
+    return { success: false, message: "Insufficient permissions." };
+  }
+
+  try {
+    await db.update(joinRequests)
+      .set({ status: 'rejected', updatedAt: new Date() })
+      .where(eq(joinRequests.id, requestId));
+
+    await logAudit(request.teamId, session.userId, 'join_rejected', {}, request.userId);
+
+    await sendNotification({
+      userId: request.userId,
+      type: 'unit_governance',
+      title: "Join Request Declined",
+      content: `Your request to join the unit has been declined.`,
+      actionUrl: "/find-units",
+    });
+
+    revalidatePath("/my-unit");
+    return { success: true, message: "Request declined." };
+  } catch (err: any) {
+    return { success: false, message: "Failed to reject request." };
   }
 }
 
@@ -288,7 +382,35 @@ export async function initiateRemovalAction(targetUserId: string, teamId: string
         status: 'pending',
       });
 
-      await logAudit(teamId, session.userId, 'removal_initiated_vote', { targetUserId }, targetUserId);
+      await logAudit(teamId, session.userId, 'removal_initiated', { targetUserId }, targetUserId);
+
+      await sendNotification({
+        userId: targetUserId,
+        type: 'unit_governance',
+        title: "Removal Initiated",
+        content: "A removal process has been initiated against your membership.",
+        actionUrl: "/my-unit",
+      });
+
+      if (memberCount > 2) {
+        const otherMembers = await db.select({ userId: teamMembers.userId })
+          .from(teamMembers)
+          .where(and(
+            eq(teamMembers.teamId, teamId),
+            sql`${teamMembers.userId} != ${session.userId}`,
+            sql`${teamMembers.userId} != ${targetUserId}`
+          ));
+
+        for (const m of otherMembers) {
+          await sendNotification({
+            userId: m.userId,
+            type: 'unit_governance',
+            title: "Governance Vote Required",
+            content: "A removal proposal has been submitted and requires your vote.",
+            actionUrl: "/my-unit",
+          });
+        }
+      }
     }
 
     revalidatePath("/my-unit");
@@ -370,12 +492,82 @@ export async function voteRemovalAction(removalRequestId: string, vote: 'approve
         .where(eq(removalRequests.id, removalRequestId));
 
       await logAudit(request.teamId, "SYSTEM", 'removal_cooling_started', { requestId: removalRequestId }, request.targetUserId);
+
+      const allMembers = await db.select({ userId: teamMembers.userId })
+        .from(teamMembers)
+        .where(eq(teamMembers.teamId, request.teamId));
+
+      for (const m of allMembers) {
+        await sendNotification({
+          userId: m.userId,
+          type: 'unit_governance',
+          title: "Cooling Period Active",
+          content: "A removal proposal has been approved. Cooling period is now active.",
+          actionUrl: "/my-unit",
+        });
+      }
     }
 
     revalidatePath("/my-unit");
     return { success: true, message: "Vote cast." };
   } catch (err: any) {
     return { success: false, message: err.message || "Failed to vote." };
+  }
+}
+
+export async function finalizeRemovalAction(removalRequestId: string) {
+  const session = await verifySession();
+  if (!session?.isAuth) return { success: false, message: "Unauthorized" };
+
+  const [request] = await db
+    .select()
+    .from(removalRequests)
+    .where(eq(removalRequests.id, removalRequestId))
+    .limit(1);
+
+  if (!request || request.status !== 'cooling') return { success: false, message: "Invalid request." };
+
+  const now = new Date();
+  if (!request.coolingEndsAt || now < request.coolingEndsAt) {
+    return { success: false, message: "Cooling period has not expired yet." };
+  }
+
+  try {
+    await db.delete(teamMembers)
+      .where(and(eq(teamMembers.teamId, request.teamId), eq(teamMembers.userId, request.targetUserId)));
+
+    await db.update(removalRequests)
+      .set({ status: 'completed', updatedAt: new Date() })
+      .where(eq(removalRequests.id, removalRequestId));
+
+    await logAudit(request.teamId, session.userId, 'removal_finalized', {}, request.targetUserId);
+
+    await sendNotification({
+      userId: request.targetUserId,
+      type: 'unit_governance',
+      title: "Membership Terminated",
+      content: "Your membership in the unit has been officially terminated following the cooling period.",
+      actionUrl: "/find-units",
+    });
+
+    const remainingMembers = await db.select({ userId: teamMembers.userId })
+      .from(teamMembers)
+      .where(eq(teamMembers.teamId, request.teamId));
+
+    for (const m of remainingMembers) {
+      await sendNotification({
+        userId: m.userId,
+        type: 'unit_governance',
+        title: "Member Removed",
+        content: "A member has been officially removed from the unit roster.",
+        actionUrl: "/my-unit",
+      });
+    }
+
+    revalidatePath("/my-unit");
+    return { success: true, message: "Member removed successfully." };
+  } catch (err: any) {
+    return { success: false, message: "Failed to finalize removal." };
   }
 }
 
@@ -399,6 +591,25 @@ export async function leaveUnitAction() {
   try {
     await db.delete(teamMembers).where(eq(teamMembers.id, membership.id));
     await logAudit(membership.teamId, session.userId, 'member_left');
+
+    const staff = await db.select({ userId: teamMembers.userId })
+      .from(teamMembers)
+      .where(and(
+        eq(teamMembers.teamId, membership.teamId),
+        or(eq(teamMembers.teamRole, 'owner'), eq(teamMembers.teamRole, 'manager'))
+      ));
+
+    const [user] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, session.userId)).limit(1);
+
+    for (const s of staff) {
+      await sendNotification({
+        userId: s.userId,
+        type: 'unit_governance',
+        title: "Member Departed",
+        content: `${user?.name || "A member"} has voluntarily left the unit.`,
+        actionUrl: "/my-unit",
+      });
+    }
 
     revalidatePath("/my-unit");
     return { success: true, message: "You have left the unit." };
@@ -438,6 +649,13 @@ export async function completeTransferAction(transferId: string) {
     .set({ completed: true, completedAt: new Date() })
     .where(eq(ownershipTransfers.id, transferId));
 
+  await sendNotification({
+    userId: transfer.toUserId,
+    type: "system",
+    title: "Transfer Completed",
+    content: "An ownership transfer has been completed.",
+  });
+
   revalidatePath("/my-unit");
   return { success: true, message: "Transfer completed." };
 }
@@ -476,6 +694,13 @@ export async function updateUnitAction(
       .where(eq(teams.id, teamId));
 
     await logAudit(teamId, session.userId, 'unit_updated', { name });
+
+    await sendNotification({
+      userId: session.userId,
+      type: "system",
+      title: "Unit Updated",
+      content: `Unit details for "${name}" have been updated.`,
+    });
 
     revalidatePath("/my-unit");
     return { success: true, message: "Unit details updated." };

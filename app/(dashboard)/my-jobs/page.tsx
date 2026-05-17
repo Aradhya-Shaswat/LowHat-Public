@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { jobs, bids } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { verifySession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { JobListItem } from "@/components/job-list-item";
@@ -20,7 +20,9 @@ export default async function MyJobsPage() {
   const jobIds = clientJobs.map((j) => j.id);
   let bidsData: { jobId: string; id: string }[] = [];
   if (jobIds.length > 0) {
-    bidsData = await db.select({ jobId: bids.jobId, id: bids.id }).from(bids);
+    bidsData = await db.select({ jobId: bids.jobId, id: bids.id })
+      .from(bids)
+      .where(inArray(bids.jobId, jobIds));
   }
 
   return (

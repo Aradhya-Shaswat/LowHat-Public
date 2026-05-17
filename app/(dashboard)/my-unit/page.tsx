@@ -6,6 +6,7 @@ import {
   users, 
   joinRequests, 
   removalRequests,
+  removalVotes,
   unitAuditLogs,
   ownershipTransfers
 } from "@/lib/db/schema";
@@ -71,9 +72,14 @@ export default async function MyUnitPage() {
     .select({
       request: removalRequests,
       target: users,
+      userVote: removalVotes,
     })
     .from(removalRequests)
     .innerJoin(users, eq(removalRequests.targetUserId, users.id))
+    .leftJoin(removalVotes, and(
+      eq(removalRequests.id, removalVotes.removalRequestId),
+      eq(removalVotes.voterUserId, session.userId)
+    ))
     .where(and(
       eq(removalRequests.teamId, unit.id),
       eq(removalRequests.status, 'pending')
@@ -104,9 +110,13 @@ export default async function MyUnitPage() {
 
   
   const userOffboarding = coolingRemovals.find(r => r.request.targetUserId === session.userId);
+  const removalTargetIds = [
+    ...activeRemovals.map(r => r.request.targetUserId),
+    ...coolingRemovals.map(r => r.request.targetUserId)
+  ];
 
   return (
-    <div className="flex flex-col py-12 px-8 md:px-12 w-full min-h-full max-w-6xl mx-auto space-y-12">
+    <div className="flex flex-col py-12 px-8 md:px-12 w-full min-h-full space-y-12">
       <UnitHeader unit={unit} userRole={userRole} />
 
       {userOffboarding && (
@@ -145,7 +155,13 @@ export default async function MyUnitPage() {
         </TabsList>
 
         <TabsContent value="roster">
-          <UnitRoster members={members} unitId={unit.id} currentUserRole={userRole} currentUserId={session.userId} />
+          <UnitRoster 
+            members={members} 
+            unitId={unit.id} 
+            currentUserRole={userRole} 
+            currentUserId={session.userId} 
+            removalTargetIds={removalTargetIds}
+          />
         </TabsContent>
 
         <TabsContent value="requests">
@@ -159,6 +175,7 @@ export default async function MyUnitPage() {
             unitId={unit.id} 
             currentUserId={session.userId}
             currentUserRole={userRole}
+            isCooling={!!userOffboarding}
           />
         </TabsContent>
 

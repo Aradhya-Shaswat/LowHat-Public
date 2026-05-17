@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { projects, jobs, messageThreads, messages, users, milestones } from "@/lib/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { projects, jobs, messageThreads, messages, users, milestones, meetings, messageReads } from "@/lib/db/schema";
+import { eq, asc, and, isNull, not, inArray } from "drizzle-orm";
 import { verifySession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { sendMessageAction } from "@/app/actions/messages";
@@ -28,17 +28,93 @@ export default async function ProjectWorkspacePage({ params }: { params: Promise
   const [thread] = await db.select().from(messageThreads).where(eq(messageThreads.projectId, project.project.id)).limit(1);
   const projectMilestones = await db.select().from(milestones).where(eq(milestones.projectId, project.project.id)).orderBy(asc(milestones.dueDate));
 
-  let threadMessages: { message: typeof messages.$inferSelect, sender: typeof users.$inferSelect }[] = [];
+  let threadMessages: { message: typeof messages.$inferSelect, sender: typeof users.$inferSelect, meeting: typeof meetings.$inferSelect | null }[] = [];
+  let receiptsMap = new Map<string, string[]>();
+
   if (thread) {
+    // 1. Mark unread messages in this thread as read for current user
+    const unreadMessages = await db
+      .select({ id: messages.id })
+      .from(messages)
+      .leftJoin(
+        messageReads,
+        and(
+          eq(messageReads.messageId, messages.id),
+          eq(messageReads.userId, session.userId)
+        )
+      )
+      .where(
+        and(
+          eq(messages.threadId, thread.id),
+          isNull(messageReads.id),
+          not(eq(messages.senderId, session.userId))
+        )
+      );
+
+    if (unreadMessages.length > 0) {
+      await db.insert(messageReads).values(
+        unreadMessages.map(m => ({
+          messageId: m.id,
+          userId: session.userId,
+        }))
+      );
+    }
+
+    // 2. Fetch all messages
     const data = await db.select({
       message: messages,
       sender: users,
+      meeting: meetings,
     })
     .from(messages)
     .innerJoin(users, eq(messages.senderId, users.id))
+    .leftJoin(meetings, eq(messages.meetingId, meetings.id))
     .where(eq(messages.threadId, thread.id))
     .orderBy(asc(messages.createdAt));
     threadMessages = data;
+
+    // 3. Fetch read receipts for these messages in a single query
+    if (data.length > 0) {
+      const readReceiptsData = await db
+        .select({
+          messageId: messageReads.messageId,
+          userName: users.name,
+          userId: users.id,
+        })
+        .from(messageReads)
+        .innerJoin(users, eq(messageReads.userId, users.id))
+        .where(
+          inArray(
+            messageReads.messageId,
+            data.map(m => m.message.id)
+          )
+        );
+
+      const userLatestReadMessageId = new Map<string, { messageId: string, name: string }>();
+      const messageIndexMap = new Map<string, number>();
+      data.forEach((m, idx) => {
+        messageIndexMap.set(m.message.id, idx);
+      });
+
+      for (const r of readReceiptsData) {
+        const messageIndex = messageIndexMap.get(r.messageId) ?? -1;
+        const currentLatest = userLatestReadMessageId.get(r.userId);
+        const currentLatestIndex = currentLatest ? (messageIndexMap.get(currentLatest.messageId) ?? -1) : -1;
+        
+        if (messageIndex > currentLatestIndex) {
+          userLatestReadMessageId.set(r.userId, {
+            messageId: r.messageId,
+            name: r.userName.split(" ")[0]
+          });
+        }
+      }
+      
+      for (const [_, info] of userLatestReadMessageId.entries()) {
+        const list = receiptsMap.get(info.messageId) || [];
+        list.push(info.name);
+        receiptsMap.set(info.messageId, list);
+      }
+    }
   }
 
   const formattedMessages = threadMessages.map(m => ({
@@ -46,7 +122,10 @@ export default async function ProjectWorkspacePage({ params }: { params: Promise
     content: m.message.content,
     createdAt: m.message.createdAt,
     senderName: (m.sender.name || "User").split(" ")[0],
-    isMe: m.sender.id === session.userId
+    senderId: m.sender.id,
+    isMe: m.sender.id === session.userId,
+    meeting: m.meeting,
+    readBy: (receiptsMap.get(m.message.id) || []).filter(name => name !== (m.sender.name || "User").split(" ")[0]),
   }));
 
   const isClient = project.project.clientId === session.userId;

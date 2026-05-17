@@ -5,7 +5,9 @@ import { eq, desc } from "drizzle-orm";
 import { verifySession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Check, AlertCircle } from "lucide-react";
-import { acceptBidAction } from "@/app/actions/jobs";
+import { acceptBidAction, deleteJobAction } from "@/app/actions/jobs";
+import { DeleteJobButton } from "@/components/delete-job-button";
+import { HoverInfo } from "@/components/hover-info";
 
 export default async function JobDetailView({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params;
@@ -27,6 +29,8 @@ export default async function JobDetailView({ params }: { params: Promise<{ jobI
   .leftJoin(teams, eq(bids.teamId, teams.id))
   .where(eq(bids.jobId, job.id))
   .orderBy(desc(bids.createdAt));
+
+  const hasAcceptedBid = jobBids.some(b => b.bid.status === "accepted");
 
   return (
     <div className="flex flex-col py-12 px-8 md:px-12 w-full min-h-full">
@@ -53,18 +57,23 @@ export default async function JobDetailView({ params }: { params: Promise<{ jobI
             </div>
             <h1 className="text-4xl font-heading text-foreground mb-4">{job.title}</h1>
           </div>
-          <div className="text-right pt-2">
+          <div className="text-right pt-2 flex flex-col items-end gap-2">
             <span className="text-sm font-medium text-foreground font-sans tracking-tight">
               ${(job.budgetMin! / 100).toLocaleString()} – ${(job.budgetMax! / 100).toLocaleString()}
             </span>
+            {!hasAcceptedBid && (
+              <form action={deleteJobAction}>
+                <input type="hidden" name="jobId" value={job.id} />
+                <DeleteJobButton />
+              </form>
+            )}
           </div>
         </div>
         
         {job.moderationStatus === "rejected" && job.moderationReason && (
-          <div className="mb-10 pl-6 border-l-2 border-rose-500/20 py-1">
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-rose-600/60 mb-2">Executive Feedback</h4>
-            <p className="text-xl font-serif italic text-rose-600 leading-relaxed">
-              &ldquo;{job.moderationReason}&rdquo;
+          <div className="mb-10 py-1">
+            <p className="text-sm font-sans text-rose-600 leading-relaxed">
+              {job.moderationReason}
             </p>
           </div>
         )}
@@ -90,7 +99,9 @@ export default async function JobDetailView({ params }: { params: Promise<{ jobI
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-serif text-foreground flex items-center gap-2">
-                      {entry.team?.name}
+                      <HoverInfo identifier={entry.team?.id || ""} type="unit">
+                        {entry.team?.name}
+                      </HoverInfo>
                       {entry.team?.moderationStatus === "approved" && (
                         <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/20" title="Verified Unit">
                           <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />

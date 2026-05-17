@@ -10,7 +10,7 @@ import { eq, and, lt, sql, not } from "drizzle-orm";
 
 
 export async function runUnitLifecycleChecks() {
-  console.log("[Worker] Starting unit lifecycle checks...");
+  // console.log("[Worker] Starting unit lifecycle checks...");
 
   
   const expiredCount = await db
@@ -21,7 +21,7 @@ export async function runUnitLifecycleChecks() {
       lt(joinRequests.expiresAt, new Date())
     ));
   
-  if (expiredCount) console.log(`[Worker] Expired ${expiredCount} join requests.`);
+  if (expiredCount) console.log(`E`);
 
   
   
@@ -45,7 +45,7 @@ export async function runUnitLifecycleChecks() {
       .limit(1);
 
     if (incompleteTransfers.length === 0) {
-      console.log(`[Worker] Finalizing removal for user ${request.targetUserId} in team ${request.teamId}`);
+      // console.log(`[Worker] Finalizing removal for user ${request.targetUserId} in team ${request.teamId}`);
       
       try {
         await db.transaction(async (tx) => {
@@ -70,12 +70,12 @@ export async function runUnitLifecycleChecks() {
           });
         });
       } catch (err) {
-        console.error(`[Worker] Failed to finalize removal ${request.id}:`, err);
+        // console.error(`[Worker] Failed to finalize removal ${request.id}:`, err);
       }
     } else {
-      console.log(`[Worker] Removal ${request.id} delayed: pending ownership transfers.`);
+      // console.log(`[Worker] Removal ${request.id} delayed: pending ownership transfers.`);
     }
   }
 
-  console.log("[Worker] Lifecycle checks complete.");
+  // console.log("[Worker] Lifecycle checks complete.");
 }

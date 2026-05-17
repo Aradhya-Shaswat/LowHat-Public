@@ -11,9 +11,11 @@ interface UnitOffboardingZoneProps {
 }
 
 export function UnitOffboardingZone({ request, unitId }: UnitOffboardingZoneProps) {
+  const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
+    setMounted(true);
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -47,7 +49,7 @@ export function UnitOffboardingZone({ request, unitId }: UnitOffboardingZoneProp
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Time Remaining</p>
           <div className="flex items-baseline gap-1 md:justify-end">
             <span className="text-4xl font-mono font-bold text-foreground tabular-nums tracking-tighter">
-              {getRemainingTime(request.coolingEndsAt)}
+              {mounted ? getRemainingTime(request.coolingEndsAt) : "--:--:--"}
             </span>
           </div>
         </div>

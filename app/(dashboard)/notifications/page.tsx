@@ -1,43 +1,38 @@
-import { db } from "@/lib/db";
-import { notifications, messageThreads, messageThreadParticipants, messages, projects, jobs, users } from "@/lib/db/schema";
-import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { verifySession } from "@/lib/session";
+import { db } from "@/lib/db";
+import { 
+  notifications, 
+  messageThreads, 
+  messageThreadParticipants, 
+  messages, 
+  users,
+  projects,
+  jobs 
+} from "@/lib/db/schema";
+import { eq, desc, and, or, sql, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { NotificationsClient } from "@/components/notifications-client";
 import Link from "next/link";
-import { MessageSquare } from "lucide-react";
+import { NotificationsClient } from "@/components/notifications-client";
+import { MessageSquare, Bell } from "lucide-react";
 
 export default async function NotificationsPage() {
   const session = await verifySession();
-  if (!session?.isAuth) {
-    redirect("/login");
-  }
+  if (!session?.isAuth) redirect("/login");
 
   const userNotifications = await db
     .select()
     .from(notifications)
     .where(eq(notifications.userId, session.userId))
-    .orderBy(desc(notifications.createdAt));
+    .orderBy(desc(notifications.createdAt))
+    .limit(50);
 
-  const participantThreads = await db
-    .select({
-      threadId: messageThreadParticipants.threadId,
-    })
+  const inboxThreads: any[] = [];
+  const myParticipants = await db
+    .select()
     .from(messageThreadParticipants)
     .where(eq(messageThreadParticipants.userId, session.userId));
 
-  const threadIds = participantThreads.map(p => p.threadId);
-
-  type InboxThread = {
-    threadId: string;
-    projectTitle: string | null;
-    lastMessage: string | null;
-    lastMessageAt: Date | null;
-    lastSenderName: string | null;
-    projectId: string | null;
-  };
-
-  let inboxThreads: InboxThread[] = [];
+  const threadIds = myParticipants.map(p => p.threadId);
 
   if (threadIds.length > 0) {
     const threadsData = await db
@@ -52,15 +47,33 @@ export default async function NotificationsPage() {
       .where(inArray(messageThreads.id, threadIds))
       .orderBy(desc(messageThreads.updatedAt));
 
-    for (const t of threadsData) {
-      const [lastMsg] = await db
-        .select({ content: messages.content, createdAt: messages.createdAt, senderName: users.name })
-        .from(messages)
-        .innerJoin(users, eq(messages.senderId, users.id))
-        .where(eq(messages.threadId, t.thread.id))
-        .orderBy(desc(messages.createdAt))
-        .limit(1);
+    const latestMessagesSubquery = db
+      .select({
+        threadId: messages.threadId,
+        content: messages.content,
+        createdAt: messages.createdAt,
+        senderName: users.name,
+        rowNum: sql<number>`row_number() over (partition by ${messages.threadId} order by ${messages.createdAt} desc)`.as("row_num"),
+      })
+      .from(messages)
+      .innerJoin(users, eq(messages.senderId, users.id))
+      .where(inArray(messages.threadId, threadIds))
+      .as("latest_messages");
 
+    const latestMessages = await db
+      .select({
+        threadId: latestMessagesSubquery.threadId,
+        content: latestMessagesSubquery.content,
+        createdAt: latestMessagesSubquery.createdAt,
+        senderName: latestMessagesSubquery.senderName,
+      })
+      .from(latestMessagesSubquery)
+      .where(eq(latestMessagesSubquery.rowNum, 1));
+
+    const latestMessagesMap = new Map(latestMessages.map(m => [m.threadId, m]));
+
+    for (const t of threadsData) {
+      const lastMsg = latestMessagesMap.get(t.thread.id);
       const projectTitle = t.job?.title ?? t.thread.title ?? "Untitled Thread";
 
       inboxThreads.push({
@@ -78,61 +91,61 @@ export default async function NotificationsPage() {
 
   return (
     <div className="flex flex-col py-12 px-8 md:px-12 w-full min-h-full">
-      <header className="mb-12 border-b border-border pb-8">
-        <h1 className="text-4xl font-heading text-foreground mb-3">Inbox</h1>
-        <p className="text-muted-foreground text-sm max-w-2xl leading-relaxed">
-          Central record of your execution contracts, identity verifications, and unit communications.
+      <header className="border-b border-border pb-10 mb-12">
+        <h1 className="text-4xl font-serif text-foreground mb-3">Inbox</h1>
+        <p className="text-muted-foreground text-sm font-sans leading-relaxed">
+          Operational alerts and project correspondence.
         </p>
       </header>
+
+      {/* Messages Section */}
       {inboxThreads.length > 0 && (
-        <section className="mb-12">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-5">
-            Messages
+        <section className="mb-20">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-8 font-sans">
+            Project Correspondence
           </h2>
-          <div className="flex flex-col gap-0">
+          <div className="flex flex-col border-t border-border/30">
             {inboxThreads.map((thread) => (
-              <Link
-                key={thread.threadId}
-                href={thread.projectId ? `/projects/${thread.projectId}` : "#"}
-                className="group flex gap-4 items-start py-5 border-b border-border -mx-8 md:-mx-12 px-8 md:px-12 hover:bg-secondary/20 transition-colors"
+              <Link 
+                key={thread.threadId} 
+                href={thread.projectId ? `/projects/${thread.projectId}/chat` : `#`}
+                className="group py-8 border-b border-border/50 flex flex-col md:flex-row md:items-start md:justify-between gap-6 hover:bg-primary/[0.01] transition-all"
               >
-                <div className="w-8 h-8 rounded-full bg-secondary/60 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <MessageSquare className="w-4 h-4 text-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 mb-0.5">
-                    <h4 className="text-sm font-semibold text-foreground truncate">{thread.projectTitle}</h4>
-                    {thread.lastMessageAt && (
-                      <span className="text-[10px] text-muted-foreground flex-shrink-0 tabular-nums">
-                        {new Date(thread.lastMessageAt).toLocaleDateString([], { month: "short", day: "numeric" })}
-                      </span>
-                    )}
-                  </div>
+                <div className="space-y-3 flex-1">
+                    <h3 className="text-2xl font-serif text-foreground group-hover:text-foreground/80 transition-colors">
+                      {thread.projectTitle}
+                    </h3>
                   {thread.lastMessage ? (
-                    <p className="text-sm text-muted-foreground line-clamp-1">
-                      {thread.lastSenderName && <span className="font-medium text-foreground/70">{thread.lastSenderName}: </span>}
+                    <p className="text-sm text-muted-foreground font-sans line-clamp-1 max-w-2xl leading-relaxed">
+                      {thread.lastSenderName && <span className="font-semibold text-foreground/60">{thread.lastSenderName}: </span>}
                       {thread.lastMessage}
                     </p>
                   ) : (
-                    <p className="text-sm text-muted-foreground/50 italic">No messages yet</p>
+                    <p className="text-sm text-muted-foreground/30 font-sans">No messages yet.</p>
                   )}
                 </div>
+                {thread.lastMessageAt && (
+                  <span className="text-[10px] text-muted-foreground font-sans pt-2 tabular-nums">
+                    {new Date(thread.lastMessageAt).toLocaleDateString()}
+                  </span>
+                )}
               </Link>
             ))}
           </div>
         </section>
       )}
 
+      {/* Notifications Section */}
       <section>
         {inboxThreads.length > 0 && (
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-5">
-            Notifications
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-8 font-sans">
+            System Alerts
           </h2>
         )}
         <NotificationsClient
           initialNotifications={userNotifications.map(n => ({
             id: n.id,
-            type: n.type,
+            type: n.type as any,
             title: n.title,
             content: n.content,
             actionUrl: n.actionUrl,

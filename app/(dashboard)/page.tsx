@@ -28,7 +28,9 @@ export default async function ExecutionBoardPage() {
   const jobIds = openJobs.map((j) => j.job.id);
   let bidsData: { jobId: string; id: string }[] = [];
   if (jobIds.length > 0) {
-    bidsData = await db.select({ jobId: bids.jobId, id: bids.id }).from(bids);
+    bidsData = await db.select({ jobId: bids.jobId, id: bids.id })
+      .from(bids)
+      .where(inArray(bids.jobId, jobIds));
   }
 
   let userTeam = null;
@@ -49,12 +51,12 @@ export default async function ExecutionBoardPage() {
         <div className="flex flex-col md:flex-row gap-12 relative items-start">
           
           <div className="flex-1 space-y-8">
-            <header className="flex items-center justify-between border-b border-border pb-8">
+            <header className="flex items-center justify-between border-b border-border pb-10">
               <div>
-                <h1 className="text-3xl font-heading text-foreground mb-2">
+                <h1 className="text-4xl font-serif text-foreground mb-3">
                   {role === "client" ? "Marketplace" : "Execution Board"}
                 </h1>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-sm font-sans max-w-md leading-relaxed">
                   {role === "client"
                     ? "Browse and manage your open contracts."
                     : "Discover verified clients looking for high-quality execution units."}
@@ -62,7 +64,7 @@ export default async function ExecutionBoardPage() {
               </div>
               {role === "client" && (
                 <Link href="/my-jobs/new">
-                  <Button className="rounded-md font-medium px-6 shadow-sm">Post a Job</Button>
+                  <button className="text-xs font-semibold px-6 py-2 bg-foreground text-background hover:opacity-90 transition-opacity font-sans">Post a Job</button>
                 </Link>
               )}
             </header>
@@ -76,13 +78,13 @@ export default async function ExecutionBoardPage() {
                 const jobBids = bidsData.filter((b) => b.jobId === entry.job.id);
                 return (
                   <Link key={entry.job.id} href={`/jobs/${entry.job.id}`} className="block group py-6 border-b border-border/60 hover:border-foreground/40 transition-colors">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-sans block mb-2">
-                          {entry.job.status}
-                        </span>
-                        <h3 className="text-2xl font-serif text-foreground group-hover:text-foreground/80 transition-colors">{entry.job.title}</h3>
-                      </div>
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="space-y-1">
+                      <span className="text-xs font-medium text-muted-foreground font-sans block mb-1">
+                        {entry.job.status.charAt(0).toUpperCase() + entry.job.status.slice(1)}
+                      </span>
+                      <h3 className="text-2xl font-serif text-foreground group-hover:text-foreground/80 transition-colors">{entry.job.title}</h3>
+                    </div>
                       <div className="text-right pt-1">
                         <span className="text-sm font-medium text-foreground font-sans tracking-tight">
                           ${(entry.job.budgetMin! / 100).toLocaleString()} – ${(entry.job.budgetMax! / 100).toLocaleString()}

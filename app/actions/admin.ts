@@ -5,6 +5,7 @@ import { verifications, jobs, teams, notifications, teamMembers } from "@/lib/db
 import { verifySession } from "@/lib/session";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { sendNotification } from "@/lib/notifications";
 import { redirect } from "next/navigation";
 
 export async function moderateVerificationAction(formData: FormData) {
@@ -21,9 +22,34 @@ export async function moderateVerificationAction(formData: FormData) {
   }
 
   try {
-    await db.update(verifications)
+    const [verification] = await db.update(verifications)
       .set({ status, updatedAt: new Date() })
-      .where(eq(verifications.id, verificationId));
+      .where(eq(verifications.id, verificationId))
+      .returning();
+
+    if (verification) {
+      if (verification.targetType === "user" && verification.targetUserId) {
+        await sendNotification({
+          userId: verification.targetUserId,
+          type: "system",
+          title: "Verification Update",
+          content: `Your identity verification request has been ${status}.`,
+        });
+      } else if (verification.targetType === "team" && verification.targetTeamId) {
+        const [owner] = await db.select()
+          .from(teamMembers)
+          .where(and(eq(teamMembers.teamId, verification.targetTeamId), eq(teamMembers.teamRole, "owner")))
+          .limit(1);
+        if (owner) {
+          await sendNotification({
+            userId: owner.userId,
+            type: "system",
+            title: "Unit Verification Update",
+            content: `Your unit's verification request has been ${status}.`,
+          });
+        }
+      }
+    }
   } catch (err) {}
 
   revalidatePath("/admin/moderation");
@@ -50,7 +76,7 @@ export async function moderateJobAction(formData: FormData) {
       .returning();
 
     if (job) {
-      await db.insert(notifications).values({
+      await sendNotification({
         userId: job.clientId,
         type: "job",
         title: status === "approved" ? "Job Approved" : "Job Rejected",
@@ -93,19 +119,19 @@ export async function moderateTeamAction(formData: FormData) {
         .limit(1);
 
       if (owner) {
-        await db.insert(notifications).values({
+        await sendNotification({
           userId: owner.userId,
           type: "system",
           title: status === "approved" ? "Unit Verified" : "Unit Moderation Update",
           content: status === "approved"
             ? `Your unit "${team.name}" has been verified. You now have a verified badge.`
             : `Your unit "${team.name}" status updated to ${status}. ${reason || ""}`,
-          actionUrl: "/team",
+          actionUrl: "/my-unit",
         });
       }
     }
   } catch (err) {}
 
   revalidatePath("/admin/moderation");
-  revalidatePath("/team");
+  revalidatePath("/my-unit");
 }

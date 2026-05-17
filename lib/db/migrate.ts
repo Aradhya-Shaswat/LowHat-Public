@@ -13,13 +13,13 @@ const sql = neon(process.env.DATABASE_URL);
 const db = drizzle(sql);
 
 async function runMigrations() {
-  console.log('⏳ Running migrations...');
+  // console.log('⏳ Running migrations...');
   const start = Date.now();
 
   try {
     await migrate(db, { migrationsFolder: 'lib/db/migrations' });
     const end = Date.now();
-    console.log(`✅ Migrations completed successfully in ${end - start}ms`);
+    // console.log(`✅ Migrations completed successfully in ${end - start}ms`);
     process.exit(0);
   } catch (error) {
     console.error('❌ Migration failed:', error);

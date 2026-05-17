@@ -5,6 +5,8 @@ import { milestones, projects } from "@/lib/db/schema";
 import { verifySession } from "@/lib/session";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { sendNotification } from "@/lib/notifications";
+import { teamMembers } from "@/lib/db/schema";
 
 async function verifyProjectAccess(projectId: string, userId: string) {
   const [project] = await db
@@ -34,6 +36,30 @@ export async function createMilestoneAction(projectId: string, data: { title: st
     amount: 0,
   });
 
+  const assigneeType = data.assignedTo ?? "team";
+  if (assigneeType === "team") {
+    const members = await db.select({ userId: teamMembers.userId })
+      .from(teamMembers)
+      .where(eq(teamMembers.teamId, project.teamId));
+    for (const m of members) {
+      await sendNotification({
+        userId: m.userId,
+        type: 'project',
+        title: "New Deliverable Assigned",
+        content: `Your unit has been assigned a new deliverable: ${data.title}`,
+        actionUrl: `/projects/${projectId}`,
+      });
+    }
+  } else {
+    await sendNotification({
+      userId: project.clientId,
+      type: 'project',
+      title: "New Deliverable Assigned",
+      content: `You have been assigned a new deliverable: ${data.title}`,
+      actionUrl: `/projects/${projectId}`,
+    });
+  }
+
   revalidatePath(`/projects/${projectId}`);
   return { success: true };
 }
@@ -55,6 +81,31 @@ export async function updateMilestoneAction(milestoneId: string, data: { title?:
     status: data.status !== undefined ? data.status : milestone.status,
     updatedAt: new Date(),
   }).where(eq(milestones.id, milestoneId));
+
+  if (data.status === "completed" && milestone.status !== "completed") {
+    if (milestone.assignedTo === "team") {
+      await sendNotification({
+        userId: project.clientId,
+        type: 'project',
+        title: "Deliverable Completed",
+        content: `The unit has completed the deliverable: ${milestone.title}`,
+        actionUrl: `/projects/${milestone.projectId}`,
+      });
+    } else {
+      const members = await db.select({ userId: teamMembers.userId })
+        .from(teamMembers)
+        .where(eq(teamMembers.teamId, project.teamId));
+      for (const m of members) {
+        await sendNotification({
+          userId: m.userId,
+          type: 'project',
+          title: "Deliverable Completed",
+          content: `The client has completed the deliverable: ${milestone.title}`,
+          actionUrl: `/projects/${milestone.projectId}`,
+        });
+      }
+    }
+  }
 
   revalidatePath(`/projects/${milestone.projectId}`);
   return { success: true };

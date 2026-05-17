@@ -6,6 +6,7 @@ import { verifySession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { sendNotification } from "@/lib/notifications";
 
 export async function createJobAction(prevState: any, formData: FormData) {
   const session = await verifySession();
@@ -23,13 +24,21 @@ export async function createJobAction(prevState: any, formData: FormData) {
   }
 
   try {
-    await db.insert(jobs).values({
+    const [job] = await db.insert(jobs).values({
       clientId: session.userId,
       title,
       description,
       budgetMin: budgetMin * 100,
       budgetMax: budgetMax * 100,
       status: "open",
+    }).returning();
+
+    await sendNotification({
+      userId: session.userId,
+      type: "system",
+      title: "Posting Created",
+      content: `Your job posting "${title}" has been submitted for moderation.`,
+      actionUrl: `/my-jobs/${job.id}`,
     });
   } catch (err) {
     return { error: "Failed to post job." };
@@ -38,22 +47,6 @@ export async function createJobAction(prevState: any, formData: FormData) {
   redirect("/my-jobs");
 }
 
-export async function mockAIJobAssistantAction(description: string) {
-  const session = await verifySession();
-  if (!session?.isAuth || session.role !== "client") {
-    return { error: "Unauthorized" };
-  }
-
-  const optimizedDescription = `(AI Scoped) Expected deliverables:
-- Architecture review
-- Secure execution pipeline
-- Testing guarantees
-
-Original description base:
-${description}`;
-
-  return { optimizedDescription, suggestedMin: 5000, suggestedMax: 15000 };
-}
 
 export async function submitBidAction(prevState: any, formData: FormData) {
   const session = await verifySession();
@@ -103,7 +96,7 @@ export async function submitBidAction(prevState: any, formData: FormData) {
       status: "pending",
     });
 
-    await db.insert(notifications).values({
+    await sendNotification({
       userId: job.clientId,
       type: "bid",
       title: "New Execution Bid",
@@ -163,7 +156,7 @@ export async function acceptBidAction(formData: FormData) {
       .where(eq(teamMembers.teamId, teamId));
 
     for (const member of members) {
-      await db.insert(notifications).values({
+      await sendNotification({
         userId: member.userId,
         type: "project",
         title: "Contract Awarded",
@@ -198,7 +191,7 @@ export async function updateMilestoneAssigneeAction(
   if (!milestone) return { error: "Milestone not found" };
 
   const [project] = await db
-    .select({ clientId: projects.clientId, teamId: projects.teamId })
+    .select({ id: projects.id, clientId: projects.clientId, teamId: projects.teamId })
     .from(projects)
     .where(eqOp(projects.id, milestone.projectId))
     .limit(1);
@@ -214,6 +207,70 @@ export async function updateMilestoneAssigneeAction(
     .set({ assignedTo, updatedAt: new Date() })
     .where(eqOp(milestones.id, milestoneId));
 
+  await sendNotification({
+    userId: session.userId,
+    type: "system",
+    title: "Milestone Updated",
+    content: `Milestone assignee has been updated to ${assignedTo}.`,
+    actionUrl: `/projects/${project.id}`,
+  });
+
+  if (project.teamId) {
+    const { teamMembers } = await import("@/lib/db/schema");
+    const members = await db.select({ userId: teamMembers.userId })
+      .from(teamMembers)
+      .where(eqOp(teamMembers.teamId, project.teamId));
+
+    for (const member of members) {
+      await sendNotification({
+        userId: member.userId,
+        type: "system",
+        title: "Milestone Reassigned",
+        content: `A milestone in your project has been reassigned to ${assignedTo}.`,
+        actionUrl: `/projects/${project.id}`,
+      });
+    }
+  }
+
   revalidatePath("/projects");
   return { success: true };
+}
+
+export async function deleteJobAction(formData: FormData) {
+  const session = await verifySession();
+  if (!session?.isAuth || session.role !== "client") {
+    return;
+  }
+
+  const jobId = formData.get("jobId") as string;
+  if (!jobId) return;
+
+  try {
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
+    if (!job || job.clientId !== session.userId) {
+      return;
+    }
+
+    const acceptedBids = await db.select({ id: bids.id })
+      .from(bids)
+      .where(and(eq(bids.jobId, jobId), eq(bids.status, "accepted")))
+      .limit(1);
+    
+    if (acceptedBids.length > 0) {
+      return;
+    }
+
+    await db.delete(jobs).where(eq(jobs.id, jobId));
+
+    await sendNotification({
+      userId: session.userId,
+      type: "system",
+      title: "Posting Deleted",
+      content: `Your job posting "${job.title}" has been successfully deleted.`,
+    });
+  } catch (err) {
+    console.error("Delete job error:", err);
+  }
+
+  redirect("/my-jobs");
 }

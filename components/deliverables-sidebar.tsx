@@ -81,19 +81,19 @@ export function DeliverablesSidebar({ milestones: initialMilestones, isClient, p
   };
 
   return (
-    <aside className="w-80 border-r border-border bg-background p-6 overflow-y-auto hidden md:flex flex-col gap-6 relative">
-      <div className="flex items-center justify-between">
+    <aside className="w-80 border-r border-border bg-background p-8 overflow-y-auto hidden md:flex flex-col gap-8 relative">
+      <div className="flex items-start justify-between">
         <div>
-          <h2 className="font-serif text-lg text-foreground mb-1">Execution Deliverables</h2>
+          <h2 className="text-sm font-semibold text-foreground mb-0.5 font-sans">Execution Deliverables</h2>
           {milestones.length > 0 && (
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-              {milestones.filter(m => m.status === "completed").length} of {milestones.length} completed
+            <p className="text-xs text-muted-foreground font-sans">
+              {milestones.filter(m => m.status === "completed").length} / {milestones.length} completed
             </p>
           )}
         </div>
         <button 
           onClick={() => setIsCreating(true)}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors text-foreground"
+          className="text-muted-foreground hover:text-foreground transition-colors mt-0.5"
           title="Add deliverable"
         >
           <Plus className="w-4 h-4" />
@@ -101,72 +101,60 @@ export function DeliverablesSidebar({ milestones: initialMilestones, isClient, p
       </div>
 
       {isCreating && (
-        <form onSubmit={handleCreate} className="p-5 border border-border rounded-xl bg-secondary/10 shadow-sm animate-in fade-in zoom-in-95 duration-200">
+        <form onSubmit={handleCreate} className="space-y-4 animate-in fade-in duration-200">
           <input
             type="text"
             placeholder="Deliverable title..."
-            className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 border-b border-border/50 pb-2 mb-4 focus:outline-none focus:border-primary transition-colors"
+            className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 border-b border-border/50 pb-2 focus:outline-none focus:border-foreground transition-colors rounded-none"
             value={formData.title}
             onChange={e => setFormData({ ...formData, title: e.target.value })}
             autoFocus
           />
-          <div className="flex gap-2 items-center justify-between">
+          <div className="flex gap-4 items-center justify-between">
             <input
               type="date"
-              className="text-xs bg-transparent text-muted-foreground border border-border rounded-md px-2.5 py-1.5 focus:outline-none focus:border-primary transition-colors"
+              className="text-xs bg-transparent text-muted-foreground border-b border-border/50 pb-1 focus:outline-none focus:border-foreground transition-colors rounded-none"
               value={formData.dueDate}
               onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
             />
-            <div className="flex gap-3 items-center">
-              <button type="button" onClick={() => setIsCreating(false)} className="text-xs text-muted-foreground hover:text-foreground font-medium transition-colors">Cancel</button>
-              <button type="submit" disabled={!formData.title.trim() || isPending} className="text-xs bg-foreground text-background hover:bg-foreground/90 px-4 py-1.5 rounded-md font-medium transition-colors disabled:opacity-50">Save</button>
+            <div className="flex gap-4 items-center">
+              <button type="button" onClick={() => setIsCreating(false)} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors font-sans">Cancel</button>
+              <button type="submit" disabled={!formData.title.trim() || isPending} className="text-xs font-medium text-foreground hover:opacity-80 transition-opacity disabled:opacity-50 font-sans">Save</button>
             </div>
           </div>
         </form>
       )}
 
       {milestones.length === 0 && !isCreating ? (
-        <div className="flex flex-col items-center justify-center text-center py-12 px-4 bg-secondary/10 rounded-lg border border-dashed border-border/50">
-          <div className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
-            <CheckCircle2 className="w-5 h-5 text-muted-foreground/50" />
-          </div>
-          <h3 className="text-sm font-semibold text-foreground mb-1">No execution deliverables yet</h3>
-          <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-            Break down the project into clear, actionable milestones.
-          </p>
-          <button 
-            onClick={() => setIsCreating(true)}
-            className="text-xs font-medium bg-foreground text-background px-4 py-2 rounded-md hover:bg-foreground/90 transition-colors"
-          >
-            Create Deliverable
-          </button>
+        <div className="flex flex-col items-start pt-4 border-t border-border/50">
+          <p className="text-xs text-muted-foreground mb-4">No deliverables defined.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="flex flex-col">
           {milestones.map((m) => {
             const isClientOwned = m.assignedTo === "client";
             const isEditing = editingId === m.id;
 
             if (isEditing) {
               return (
-                <form key={m.id} onSubmit={(e) => { e.preventDefault(); handleUpdate(m.id, { title: formData.title, dueDate: formData.dueDate }); }} className="p-5 border border-primary/40 rounded-xl bg-secondary/10 shadow-sm animate-in fade-in duration-200 relative z-10">
+                <form key={m.id} onSubmit={(e) => { e.preventDefault(); handleUpdate(m.id, { title: formData.title, dueDate: formData.dueDate }); }} className="py-4 border-b border-border/50 space-y-4 animate-in fade-in duration-200 relative z-10">
                   <input
                     type="text"
-                    className="w-full bg-transparent text-sm text-foreground border-b border-border/50 pb-2 mb-4 focus:outline-none focus:border-primary transition-colors"
+                    className="w-full bg-transparent text-sm text-foreground border-b border-border/50 pb-2 focus:outline-none focus:border-foreground transition-colors rounded-none"
                     value={formData.title}
                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                     autoFocus
                   />
-                  <div className="flex gap-2 items-center justify-between">
+                  <div className="flex gap-4 items-center justify-between">
                     <input
                       type="date"
-                      className="text-xs bg-transparent text-muted-foreground border border-border rounded-md px-2.5 py-1.5 focus:outline-none focus:border-primary transition-colors"
+                      className="text-xs bg-transparent text-muted-foreground border-b border-border/50 pb-1 focus:outline-none focus:border-foreground transition-colors rounded-none"
                       value={formData.dueDate}
                       onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
                     />
-                    <div className="flex gap-3 items-center">
-                      <button type="button" onClick={() => setEditingId(null)} className="text-xs text-muted-foreground hover:text-foreground font-medium transition-colors">Cancel</button>
-                      <button type="submit" disabled={!formData.title.trim() || isPending} className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-1.5 rounded-md font-medium transition-colors disabled:opacity-50">Save</button>
+                    <div className="flex gap-4 items-center">
+                      <button type="button" onClick={() => setEditingId(null)} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors font-sans">Cancel</button>
+                      <button type="submit" disabled={!formData.title.trim() || isPending} className="text-xs font-medium text-foreground hover:opacity-80 transition-opacity disabled:opacity-50 font-sans">Save</button>
                     </div>
                   </div>
                 </form>
@@ -177,74 +165,68 @@ export function DeliverablesSidebar({ milestones: initialMilestones, isClient, p
               <div
                 key={m.id}
                 className={`
-                  group relative p-4 border border-border rounded-md bg-card/20 transition-all duration-200
-                  ${m.status === "completed" ? "opacity-60" : "hover:border-border/80"}
-                  ${m.status !== "completed" && isClientOwned ? "border-l-[3px] border-l-sky-500/70" : ""}
-                  ${m.status !== "completed" && !isClientOwned ? "border-l-[3px] border-l-primary" : ""}
+                  group relative py-4 border-b border-border/50 transition-all duration-200 flex items-start gap-3
+                  ${m.status === "completed" ? "opacity-50" : ""}
                 `}
               >
-                <div className="flex items-start gap-3">
-                  <button onClick={() => cycleStatus(m)} className="mt-0.5 flex-shrink-0 hover:scale-110 transition-transform">
-                    {renderStatusIcon(m.status)}
-                  </button>
+                <button onClick={() => cycleStatus(m)} className="mt-0.5 flex-shrink-0 hover:scale-110 transition-transform">
+                  {renderStatusIcon(m.status)}
+                </button>
+                
+                <div className="flex-1 min-w-0">
+                  <h3 className={`text-sm tracking-tight leading-snug pr-6 ${m.status === "completed" ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                    {m.title}
+                  </h3>
                   
-                  <div className="flex-1 min-w-0">
-                    <h3 className={`text-sm font-medium leading-snug truncate ${m.status === "completed" ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                      {m.title}
-                    </h3>
-                    <div className="flex items-center gap-3 mt-2">
-                      <button 
-                        onClick={() => handleUpdate(m.id, { assignedTo: m.assignedTo === "team" ? "client" : "team" })}
-                        className={`
-                          text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full flex-shrink-0 transition-colors
-                          ${m.status === "completed" ? "opacity-50 cursor-default" : "cursor-pointer hover:opacity-80"}
-                          ${isClientOwned
-                            ? "bg-sky-500/10 text-sky-600 border border-sky-500/20 dark:text-sky-400"
-                            : "bg-primary/10 text-primary border border-primary/20"}
-                        `}
-                        title={m.status !== "completed" ? "Click to toggle assignee" : undefined}
-                        disabled={m.status === "completed"}
-                      >
-                        {isClientOwned ? "Client" : "Team"}
-                      </button>
-                      
-                      {m.dueDate && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {new Date(m.dueDate).toLocaleDateString([], { month: "short", day: "numeric" })}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="relative opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-4 mt-2">
                     <button 
-                      onClick={() => setOpenDropdown(openDropdown === m.id ? null : m.id)}
-                      className="p-1 hover:bg-secondary rounded text-muted-foreground"
+                      onClick={() => handleUpdate(m.id, { assignedTo: m.assignedTo === "team" ? "client" : "team" })}
+                      className={`
+                        text-[11px] font-medium transition-colors font-sans
+                        ${m.status === "completed" ? "cursor-default" : "cursor-pointer hover:text-foreground"}
+                        ${isClientOwned ? "text-sky-500" : "text-muted-foreground"}
+                      `}
+                      disabled={m.status === "completed"}
                     >
-                      <MoreVertical className="w-4 h-4" />
+                      {isClientOwned ? "Client" : "Team"}
                     </button>
-
-                    {openDropdown === m.id && (
-                      <div className="absolute right-0 top-full mt-1 w-32 bg-popover border border-border rounded-md shadow-lg py-1 z-20 animate-in fade-in slide-in-from-top-2">
-                        <button 
-                          onClick={() => {
-                            setFormData({ title: m.title, dueDate: m.dueDate ? m.dueDate.split("T")[0] : "" });
-                            setEditingId(m.id);
-                            setOpenDropdown(null);
-                          }}
-                          className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-secondary flex items-center gap-2"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" /> Edit
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(m.id)}
-                          className="w-full text-left px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 flex items-center gap-2"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete
-                        </button>
-                      </div>
+                    
+                    {m.dueDate && (
+                      <span className="text-[11px] text-muted-foreground font-sans">
+                        {new Date(m.dueDate).toLocaleDateString([], { month: "short", day: "numeric" })}
+                      </span>
                     )}
                   </div>
+                </div>
+
+                <div className="absolute right-0 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => setOpenDropdown(openDropdown === m.id ? null : m.id)}
+                    className="p-1 text-muted-foreground hover:text-foreground"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+
+                  {openDropdown === m.id && (
+                    <div className="absolute right-0 top-full mt-1 w-32 bg-background border border-border shadow-sm py-1 z-20">
+                      <button 
+                        onClick={() => {
+                          setFormData({ title: m.title, dueDate: m.dueDate ? m.dueDate.split("T")[0] : "" });
+                          setEditingId(m.id);
+                          setOpenDropdown(null);
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs text-muted-foreground hover:text-foreground font-sans"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(m.id)}
+                        className="w-full text-left px-4 py-2 text-xs text-muted-foreground hover:text-destructive font-sans"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );

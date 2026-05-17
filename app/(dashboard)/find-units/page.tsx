@@ -1,10 +1,11 @@
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
-import { teams, teamMembers } from "@/lib/db/schema";
-import { eq, and, notExists } from "drizzle-orm";
+import { teams, teamMembers, joinRequests } from "@/lib/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { submitJoinRequestAction } from "@/app/actions/units";
 import { JoinUnitModal } from "@/components/join-unit-modal";
+import { HoverInfo } from "@/components/hover-info";
 
 export default async function FindUnitsPage() {
   const session = await verifySession();
@@ -12,7 +13,6 @@ export default async function FindUnitsPage() {
     redirect("/");
   }
 
-  
   const userMembership = await db
     .select()
     .from(teamMembers)
@@ -21,7 +21,11 @@ export default async function FindUnitsPage() {
 
   const isInUnit = userMembership.length > 0;
 
-  
+  const myRequests = await db
+    .select()
+    .from(joinRequests)
+    .where(eq(joinRequests.userId, session.userId));
+
   const availableUnits = await db
     .select()
     .from(teams)
@@ -29,8 +33,8 @@ export default async function FindUnitsPage() {
     .limit(20);
 
   return (
-    <div className="flex flex-col py-12 px-8 md:px-12 w-full min-h-full max-w-6xl mx-auto">
-      <header className="mb-16">
+    <div className="flex flex-col py-12 px-8 md:px-12 w-full min-h-full">
+      <header className="mb-8">
         <h1 className="text-4xl font-serif text-foreground mb-4">Discover Units</h1>
         <p className="text-muted-foreground text-sm max-w-md leading-relaxed">
           Find and partner with established operational collectives. Browse by capabilities, reputation, and verification status.
@@ -38,44 +42,72 @@ export default async function FindUnitsPage() {
       </header>
 
       {isInUnit ? (
-        <div className="p-6 rounded-2xl bg-secondary/20 border border-border/50 mb-12 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground italic">
+        <div className="py-4 border-b border-border/50 mb-8 flex items-center justify-between">
+          <p className="text-sm text-muted-foreground font-sans">
             You are currently an active member of an execution unit. Membership is exclusive.
           </p>
-          <a href="/my-unit" className="text-xs font-bold uppercase tracking-widest text-foreground hover:underline">
-            Manage My Unit →
+          <a href="/my-unit" className="text-xs font-semibold text-foreground hover:opacity-80 transition-opacity font-sans">
+            Manage my unit →
           </a>
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {availableUnits.map((u) => (
-          <div key={u.id} className="p-6 rounded-2xl bg-card border border-border/50 shadow-sm flex flex-col justify-between group hover:border-foreground/10 transition-all">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-serif text-lg text-foreground">{u.name}</h3>
-                {u.moderationStatus === 'approved' && (
-                  <span className="text-[10px] font-bold px-2 py-1 bg-emerald-500/10 text-emerald-600 rounded uppercase tracking-wider">
-                    Verified
+      <div className="flex flex-col border-t border-border/30">
+        {availableUnits.map((u) => {
+          const myRequest = myRequests.find(r => r.teamId === u.id);
+          const isPending = myRequest?.status === 'pending';
+          const isRejected = myRequest?.status === 'rejected';
+          
+          let cooldownActive = false;
+          let daysLeft = 0;
+          if (isRejected && myRequest?.updatedAt) {
+            const diff = (Date.now() - new Date(myRequest.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+            if (diff < 14) {
+              cooldownActive = true;
+              daysLeft = Math.ceil(14 - diff);
+            }
+          }
+
+          return (
+            <div key={u.id} className="py-10 border-b border-border/50 flex flex-col md:flex-row md:items-start md:justify-between gap-8 group">
+              <div className="space-y-4 flex-1 max-w-2xl">
+                <div className="flex items-center gap-6">
+                  <h3 className="font-serif text-2xl text-foreground leading-none">
+                    <HoverInfo identifier={u.id} type="unit">
+                      {u.name}
+                    </HoverInfo>
+                  </h3>
+                  {u.moderationStatus === 'approved' && (
+                    <span className="text-[10px] font-medium text-emerald-600 tracking-wider uppercase font-sans border border-emerald-500/20 px-1.5 py-0.5">
+                      Verified
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed font-sans max-w-xl">
+                  {u.description || "No operational mandate provided."}
+                </p>
+              </div>
+              
+              <div className="flex-shrink-0 pt-1">
+                {isInUnit ? (
+                  <span className="text-[10px] font-medium text-muted-foreground/40 tracking-widest uppercase font-sans">
+                    Exclusive Membership
                   </span>
+                ) : isPending ? (
+                  <span className="text-[10px] font-medium text-amber-600 tracking-widest uppercase font-sans border border-amber-500/20 px-3 py-1">
+                    Request Pending
+                  </span>
+                ) : cooldownActive ? (
+                  <span className="text-[10px] font-medium text-rose-600 tracking-widest uppercase font-sans border border-rose-500/20 px-3 py-1" title="14-day cooling period after rejection">
+                    Cooling Period ({daysLeft}d)
+                  </span>
+                ) : (
+                  <JoinUnitModal unitId={u.id} unitName={u.name} />
                 )}
               </div>
-              <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-                {u.description || "No operational mandate provided."}
-              </p>
             </div>
-            
-            <div className="mt-6 pt-6 border-t border-border/30">
-              {isInUnit ? (
-                <button disabled className="w-full py-2 border border-border rounded-lg text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50 cursor-not-allowed">
-                  Exclusive Membership
-                </button>
-              ) : (
-                <JoinUnitModal unitId={u.id} unitName={u.name} />
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
